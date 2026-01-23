@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: 'Mobile-first web app for tracking student prayer attendance',
   manifest: '/manifest.json',
   themeColor: '#0f172a',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({

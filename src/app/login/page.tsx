@@ -12,16 +12,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
     try {
       await login(email, password);
       router.push("/dashboard");
     } catch (err) {
       setError("Email atau password salah");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +57,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={handleEmailChange}
                 required
+                placeholder="email@example.com"
               />
             </div>
             <div>
@@ -62,11 +68,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={handlePasswordChange}
                 required
+                minLength={6}
+                placeholder="Minimal 6 karakter"
               />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full">
-              Login
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Memuat..." : "Login"}
             </Button>
           </form>
         </CardContent>
