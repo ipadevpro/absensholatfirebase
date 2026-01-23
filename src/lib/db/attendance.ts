@@ -6,6 +6,7 @@ import {
   setDoc,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
@@ -13,6 +14,25 @@ const ATTENDANCE_COLLECTION = "attendance";
 
 function getAttendanceDocId(date: string, classId: string, gender: string, prayerType: string): string {
   return `${date}_${classId}_${gender}_${prayerType}`;
+}
+
+export function subscribeToAttendance(
+  date: string,
+  classId: string,
+  gender: string,
+  prayerType: string,
+  callback: (presentStudents: string[]) => void
+): () => void {
+  const docId = getAttendanceDocId(date, classId, gender, prayerType);
+  const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
+  
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data().presentStudents || []);
+    } else {
+      callback([]);
+    }
+  });
 }
 
 export async function getAttendance(

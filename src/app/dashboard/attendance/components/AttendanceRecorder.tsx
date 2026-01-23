@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Student, PrayerType } from "@/types";
 import { getStudentsByClass } from "@/lib/db/students";
-import { getAttendance, markPresent, markAbsent } from "@/lib/db/attendance";
+import { markPresent, markAbsent, subscribeToAttendance } from "@/lib/db/attendance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -37,21 +37,23 @@ export function AttendanceRecorder({ classId, gender, date }: AttendanceRecorder
     fetchStudents();
   }, [classId, gender]);
 
-  // Fetch attendance when prayer or date changes
+  // Subscribe to attendance updates
   useEffect(() => {
-    async function fetchAttendance() {
-      if (!date || !classId) return;
-      setLoading(true);
-      try {
-        const present = await getAttendance(date, classId, gender, selectedPrayer);
+    if (!date || !classId) return;
+    
+    setLoading(true);
+    const unsubscribe = subscribeToAttendance(
+      date,
+      classId,
+      gender,
+      selectedPrayer,
+      (present) => {
         setPresentIds(new Set(present));
-      } catch (error) {
-        console.error("Error fetching attendance:", error);
-      } finally {
         setLoading(false);
       }
-    }
-    fetchAttendance();
+    );
+
+    return () => unsubscribe();
   }, [date, classId, gender, selectedPrayer]);
 
   const handleToggle = async (studentId: string, isPresent: boolean) => {
