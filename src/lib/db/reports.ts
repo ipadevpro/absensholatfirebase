@@ -54,12 +54,8 @@ export async function getAttendanceStats(
     let attended = 0;
 
     attendanceRecords.forEach((record) => {
-      let prayersThisDay = 0;
-      if (gender === "ikhwan") {
-        prayersThisDay = 2; 
-      } else {
-        prayersThisDay = 2;
-      }
+      // Each attendance record represents ONE prayer session
+      const prayersThisDay = 1;
 
       totalPrayers += prayersThisDay;
 
