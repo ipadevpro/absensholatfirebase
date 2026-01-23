@@ -1,0 +1,109 @@
+"use client";
+
+import { useState } from "react";
+import { Coordinator } from "@/types";
+import { addCoordinator, deleteCoordinator } from "@/lib/db/coordinators";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Trash2, Plus, X } from "lucide-react";
+import CoordinatorForm from "./CoordinatorForm";
+
+interface CoordinatorsListProps {
+  initialCoordinators: Coordinator[];
+}
+
+export default function CoordinatorsList({ initialCoordinators }: CoordinatorsListProps) {
+  const [coordinators, setCoordinators] = useState<Coordinator[]>(initialCoordinators);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAdd = async (data: Omit<Coordinator, "id" | "createdAt">) => {
+    setIsLoading(true);
+    try {
+      const id = await addCoordinator(data);
+      const newCoord: Coordinator = {
+        ...data,
+        id,
+        createdAt: new Date()
+      };
+      setCoordinators([...coordinators, newCoord]);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error("Failed to add coordinator", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this coordinator?")) return;
+    try {
+      await deleteCoordinator(id);
+      setCoordinators(coordinators.filter((c) => c.id !== id));
+    } catch (error) {
+      console.error("Failed to delete coordinator", error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+           {/* Spacer */}
+        </div>
+        <Button onClick={() => setIsFormOpen(!isFormOpen)} variant={isFormOpen ? "secondary" : "default"}>
+          {isFormOpen ? <><X className="mr-2 h-4 w-4" /> Cancel</> : <><Plus className="mr-2 h-4 w-4" /> Add Coordinator</>}
+        </Button>
+      </div>
+
+      {isFormOpen && (
+        <div className="mb-8 animate-in slide-in-from-top-4 fade-in duration-200">
+            <CoordinatorForm onSubmit={handleAdd} isLoading={isLoading} />
+        </div>
+      )}
+
+      <div className="rounded-md border bg-card text-card-foreground shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Gender</TableHead>
+              <TableHead>Class</TableHead>
+              <TableHead>UID</TableHead>
+              <TableHead className="w-[100px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {coordinators.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                        No coordinators found.
+                    </TableCell>
+                </TableRow>
+            ) : (
+                coordinators.map((coordinator) => (
+                <TableRow key={coordinator.id}>
+                    <TableCell className="font-medium">{coordinator.name}</TableCell>
+                    <TableCell className="capitalize">{coordinator.gender}</TableCell>
+                    <TableCell>{coordinator.classId}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{coordinator.uid}</TableCell>
+                    <TableCell className="text-right">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(coordinator.id)}
+                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        title="Delete coordinator"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                    </TableCell>
+                </TableRow>
+                ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
