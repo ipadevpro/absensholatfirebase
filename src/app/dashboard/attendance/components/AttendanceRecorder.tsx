@@ -1,0 +1,133 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Student, PrayerType } from "@/types";
+import { getStudentsByClass } from "@/lib/db/students";
+import { getAttendance, markPresent, markAbsent } from "@/lib/db/attendance";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale"; // Use Indonesian locale
+import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { AttendanceList } from "./AttendanceList";
+
+interface AttendanceRecorderProps {
+  classId: string;
+  gender: "ikhwan" | "akhwat";
+  date: string; // YYYY-MM-DD
+}
+
+export function AttendanceRecorder({ classId, gender, date }: AttendanceRecorderProps) {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPrayer, setSelectedPrayer] = useState<PrayerType>("zuhur");
+  const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+
+  // Fetch students
+  useEffect(() => {
+    async function fetchStudents() {
+      try {
+        const data = await getStudentsByClass(classId);
+        setStudents(data.filter(s => s.gender === gender));
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    }
+    fetchStudents();
+  }, [classId, gender]);
+
+  // Fetch attendance when prayer or date changes
+  useEffect(() => {
+    async function fetchAttendance() {
+      if (!date || !classId) return;
+      setLoading(true);
+      try {
+        const present = await getAttendance(date, classId, gender, selectedPrayer);
+        setPresentIds(new Set(present));
+      } catch (error) {
+        console.error("Error fetching attendance:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAttendance();
+  }, [date, classId, gender, selectedPrayer]);
+
+  const handleToggle = async (studentId: string, isPresent: boolean) => {
+    // Optimistic update
+    setPresentIds(prev => {
+      const next = new Set(prev);
+      if (isPresent) next.add(studentId);
+      else next.delete(studentId);
+      return next;
+    });
+
+    setUpdatingIds(prev => new Set(prev).add(studentId));
+
+    try {
+      if (isPresent) {
+        await markPresent(date, classId, gender, selectedPrayer, studentId);
+      } else {
+        await markAbsent(date, classId, gender, selectedPrayer, studentId);
+      }
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      // Revert on error
+      setPresentIds(prev => {
+        const next = new Set(prev);
+        if (isPresent) next.delete(studentId);
+        else next.add(studentId);
+        return next;
+      });
+      // Here you would show a toast error
+    } finally {
+      setUpdatingIds(prev => {
+        const next = new Set(prev);
+        next.delete(studentId);
+        return next;
+      });
+    }
+  };
+
+  return (
+    <Card className="w-full shadow-sm">
+      <CardHeader className="pb-4">
+        <div className="flex items-center space-x-2 text-muted-foreground mb-2">
+          <CalendarIcon className="h-4 w-4" />
+          <span className="text-sm font-medium">
+            {format(new Date(date), "EEEE, d MMMM yyyy", { locale: idLocale })}
+          </span>
+        </div>
+        <CardTitle className="text-2xl font-bold">Catat Kehadiran</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={selectedPrayer} onValueChange={(v) => setSelectedPrayer(v as PrayerType)} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="zuhur">Zuhur</TabsTrigger>
+            <TabsTrigger value="ashar">Ashar</TabsTrigger>
+            <TabsTrigger value="jumat">Jumat</TabsTrigger>
+          </TabsList>
+
+          {["zuhur", "ashar", "jumat"].map((prayer) => (
+            <TabsContent key={prayer} value={prayer} className="mt-0">
+              {loading ? (
+                <div className="flex justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <AttendanceList 
+                  students={students}
+                  presentIds={presentIds}
+                  updatingIds={updatingIds}
+                  onToggle={handleToggle}
+                  prayerKey={prayer}
+                />
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+}
