@@ -1,0 +1,21 @@
+{
+  "name": "Absen Sholat",
+  "short_name": "AbsenSholat",
+  "description": "Mobile-first web app for tracking student prayer attendance at SMP PGII 1 Bandung",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
