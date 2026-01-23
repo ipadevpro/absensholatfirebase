@@ -43,46 +43,6 @@ describe('Firebase Configuration', () => {
   });
 });
 
-describe('Firebase Auth Module', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    Object.entries(mockEnv).forEach(([key, value]) => {
-      vi.stubEnv(key, value);
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
-  });
-
-  it('should export auth-related functions', async () => {
-    const auth = await import('./auth');
-    expect(auth.signInWithEmailAndPassword).toBeDefined();
-    expect(auth.createUserWithEmailAndPassword).toBeDefined();
-    expect(auth.signOut).toBeDefined();
-    expect(auth.onAuthStateChanged).toBeDefined();
-  });
-});
-
-describe('Firebase DB Module', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    Object.entries(mockEnv).forEach(([key, value]) => {
-      vi.stubEnv(key, value);
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
-  });
-
-  it('should export db-related functions', async () => {
-    const db = await import('./db');
-    expect(db.getStudents).toBeDefined();
-    expect(db.getPrayers).toBeDefined();
-    expect(db.addAttendance).toBeDefined();
-    expect(db.updateAttendance).toBeDefined();
-  });
-});
+// DEPRECATED: Auth and DB module tests removed
+// These modules have been consolidated into config.ts
+// See auth.ts and db.ts files for deprecation notices
