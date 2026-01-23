@@ -15,7 +15,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [user, loading, router]);
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Loading">
+        <span className="sr-only">Loading...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    );
   }
 
   if (!user) return null;
