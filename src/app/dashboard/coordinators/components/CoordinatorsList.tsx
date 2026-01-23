@@ -5,7 +5,7 @@ import { Coordinator } from "@/types";
 import { addCoordinator, deleteCoordinator } from "@/lib/db/coordinators";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Plus, X } from "lucide-react";
+import { Trash2, Plus, X, AlertCircle } from "lucide-react";
 import CoordinatorForm from "./CoordinatorForm";
 
 interface CoordinatorsListProps {
@@ -16,9 +16,11 @@ export default function CoordinatorsList({ initialCoordinators }: CoordinatorsLi
   const [coordinators, setCoordinators] = useState<Coordinator[]>(initialCoordinators);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async (data: Omit<Coordinator, "id" | "createdAt">) => {
     setIsLoading(true);
+    setError(null);
     try {
       const id = await addCoordinator(data);
       const newCoord: Coordinator = {
@@ -28,8 +30,11 @@ export default function CoordinatorsList({ initialCoordinators }: CoordinatorsLi
       };
       setCoordinators([...coordinators, newCoord]);
       setIsFormOpen(false);
+      return true;
     } catch (error) {
       console.error("Failed to add coordinator", error);
+      setError("Failed to add coordinator. Please try again.");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -37,28 +42,42 @@ export default function CoordinatorsList({ initialCoordinators }: CoordinatorsLi
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this coordinator?")) return;
+    setError(null);
     try {
       await deleteCoordinator(id);
       setCoordinators(coordinators.filter((c) => c.id !== id));
     } catch (error) {
       console.error("Failed to delete coordinator", error);
+      setError("Failed to delete coordinator. Please try again.");
     }
   };
 
   return (
     <div className="space-y-6">
+      {error && !isFormOpen && (
+        <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          <p>{error}</p>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <div>
            {/* Spacer */}
         </div>
-        <Button onClick={() => setIsFormOpen(!isFormOpen)} variant={isFormOpen ? "secondary" : "default"}>
+        <Button 
+            onClick={() => {
+                setIsFormOpen(!isFormOpen);
+                setError(null);
+            }} 
+            variant={isFormOpen ? "secondary" : "default"}
+        >
           {isFormOpen ? <><X className="mr-2 h-4 w-4" /> Cancel</> : <><Plus className="mr-2 h-4 w-4" /> Add Coordinator</>}
         </Button>
       </div>
 
       {isFormOpen && (
         <div className="mb-8 animate-in slide-in-from-top-4 fade-in duration-200">
-            <CoordinatorForm onSubmit={handleAdd} isLoading={isLoading} />
+            <CoordinatorForm onSubmit={handleAdd} isLoading={isLoading} error={error} />
         </div>
       )}
 

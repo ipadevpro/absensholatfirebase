@@ -13,13 +13,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+
+const AVAILABLE_CLASSES = [
+  { id: "7a", name: "7-A" },
+  { id: "7b", name: "7-B" },
+  { id: "8a", name: "8-A" },
+  { id: "8b", name: "8-B" },
+  { id: "9a", name: "9-A" },
+  { id: "9b", name: "9-B" },
+];
 
 interface CoordinatorFormProps {
-  onSubmit: (data: Omit<Coordinator, "id" | "createdAt">) => Promise<void>;
+  onSubmit: (data: Omit<Coordinator, "id" | "createdAt">) => Promise<boolean | void>;
   isLoading?: boolean;
+  error?: string | null;
 }
 
-export default function CoordinatorForm({ onSubmit, isLoading = false }: CoordinatorFormProps) {
+export default function CoordinatorForm({ onSubmit, isLoading = false, error }: CoordinatorFormProps) {
   const [name, setName] = useState("");
   const [uid, setUid] = useState("");
   const [classId, setClassId] = useState("");
@@ -29,19 +40,20 @@ export default function CoordinatorForm({ onSubmit, isLoading = false }: Coordin
     e.preventDefault();
     if (!name || !uid || !classId || !gender) return;
 
-    await onSubmit({
+    const success = await onSubmit({
       name,
       uid,
       classId,
       gender: gender as Gender,
     });
     
-    // Reset form is handled by parent or manual reset if needed, 
-    // but typically nice to clear inputs after success
-    setName("");
-    setUid("");
-    setClassId("");
-    setGender("");
+    // Only reset if success (explicit true or void/undefined which implies we didn't return false)
+    if (success !== false) {
+        setName("");
+        setUid("");
+        setClassId("");
+        setGender("");
+    }
   };
 
   return (
@@ -51,6 +63,12 @@ export default function CoordinatorForm({ onSubmit, isLoading = false }: Coordin
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <p>{error}</p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -71,17 +89,25 @@ export default function CoordinatorForm({ onSubmit, isLoading = false }: Coordin
               onChange={(e) => setUid(e.target.value)}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Copy the UID from the Firebase Authentication dashboard or User Management table.
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="classId">Class ID</Label>
-            <Input
-              id="classId"
-              placeholder="e.g. 7A"
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              required
-            />
+            <Select value={classId} onValueChange={setClassId}>
+              <SelectTrigger id="classId">
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_CLASSES.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
