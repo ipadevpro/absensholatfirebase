@@ -124,14 +124,17 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <div className="space-y-2">
+            <div className="space-y-2">
           <Label>Tahun</Label>
            <Select value={year} onValueChange={setYear}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[2023, 2024, 2025, 2026].map((y) => (
+              {Array.from(
+                { length: new Date().getFullYear() - 2023 + 2 },
+                (_, i) => 2023 + i
+              ).map((y) => (
                 <SelectItem key={y} value={String(y)}>
                   {y}
                 </SelectItem>
