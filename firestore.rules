@@ -1,12 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Check if user is a guru (admin)
     function isGuru() {
       return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
@@ -15,28 +13,24 @@ service cloud.firestore {
       return isAuthenticated() && exists(/databases/$(database)/documents/coordinators/$(request.auth.uid));
     }
 
-    // Students collection
     match /students/{studentId} {
-      allow read: if isAuthenticated();
+      allow read: if isGuru() || isCoordinator();
       allow write: if isGuru();
     }
 
-    // Coordinators collection
     match /coordinators/{coordinatorId} {
-      allow read: if isAuthenticated();
+      allow read: if isGuru() || (isAuthenticated() && request.auth.uid == coordinatorId);
       allow write: if isGuru();
     }
 
-    // Attendance collection
-    match /attendance/{document=**} {
-      allow read: if isAuthenticated();
+    match /attendance/{attendanceId} {
+      allow read: if isGuru() || isCoordinator();
       allow write: if isGuru() || isCoordinator();
     }
     
-    // Admins collection (for the isGuru check)
     match /admins/{adminId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Only manageable via Firebase Console or Admin SDK
+      allow read: if isGuru();
+      allow write: if false;
     }
   }
 }

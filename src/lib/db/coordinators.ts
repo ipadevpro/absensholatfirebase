@@ -1,6 +1,6 @@
 import {
   collection,
-  addDoc,
+  setDoc,
   getDocs,
   deleteDoc,
   doc,
@@ -24,11 +24,12 @@ export async function getAllCoordinators(): Promise<Coordinator[]> {
 }
 
 export async function addCoordinator(coordinator: Omit<Coordinator, "id" | "createdAt">): Promise<string> {
-  const docRef = await addDoc(collection(db, COORDINATORS_COLLECTION), {
+  const docRef = doc(db, COORDINATORS_COLLECTION, coordinator.uid);
+  await setDoc(docRef, {
     ...coordinator,
     createdAt: new Date()
   });
-  return docRef.id;
+  return coordinator.uid;
 }
 
 export async function deleteCoordinator(id: string): Promise<void> {
