@@ -1,36 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    // Fungsi isGuru mengecek keberadaan dokumen UID di koleksi admins
     function isGuru() {
       return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Fungsi isCoordinator mengecek keberadaan dokumen UID di koleksi coordinators
     function isCoordinator() {
       return isAuthenticated() && exists(/databases/$(database)/documents/coordinators/$(request.auth.uid));
     }
 
+    // Aturan untuk koleksi Students
     match /students/{studentId} {
       allow read: if isGuru() || isCoordinator();
       allow write: if isGuru();
     }
 
+    // Aturan untuk koleksi Coordinators
     match /coordinators/{coordinatorId} {
+      // User boleh membaca datanya sendiri, atau Admin boleh membaca semua
       allow read: if isGuru() || (isAuthenticated() && request.auth.uid == coordinatorId);
       allow write: if isGuru();
     }
 
+    // Aturan untuk koleksi Attendance
     match /attendance/{attendanceId} {
       allow read: if isGuru() || isCoordinator();
       allow write: if isGuru() || isCoordinator();
     }
     
+    // Aturan untuk koleksi Admins
     match /admins/{adminId} {
-      allow read: if isGuru();
-      allow write: if false;
+      // PENTING: User harus boleh membaca dokumennya sendiri untuk keperluan pengecekan role saat login
+      allow read: if isAuthenticated() && request.auth.uid == adminId || isGuru();
+      allow write: if false; // Admin hanya bisa ditambah via Console/Admin SDK
     }
   }
 }

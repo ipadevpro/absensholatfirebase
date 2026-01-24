@@ -19,6 +19,11 @@ export async function getStudentsByClass(classId: string): Promise<Student[]> {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Student));
 }
 
+export async function getAllStudents(): Promise<Student[]> {
+  const snapshot = await getDocs(collection(db, STUDENTS_COLLECTION));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Student));
+}
+
 export async function addStudent(student: Omit<Student, "id" | "createdAt">): Promise<string> {
   const docRef = await addDoc(collection(db, STUDENTS_COLLECTION), {
     ...student,

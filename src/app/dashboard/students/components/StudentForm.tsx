@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Student, Gender } from "@/types";
+import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,9 +22,12 @@ export function StudentForm({ student, onSubmit, onCancel }: StudentFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !gender || !classId) return;
+    
     onSubmit({ name, gender, classId });
     setName("");
     setGender("ikhwan");
+    setClassId("");
   };
 
   return (
@@ -33,19 +37,35 @@ export function StudentForm({ student, onSubmit, onCancel }: StudentFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">Nama Siswa</Label>
             <Input
               id="name"
+              placeholder="Nama Lengkap"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
-          <div>
+          <div className="space-y-2">
+            <Label htmlFor="classId">Kelas</Label>
+            <Select value={classId} onValueChange={setClassId}>
+              <SelectTrigger id="classId">
+                <SelectValue placeholder="Pilih kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_CLASSES.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="gender">Jenis Kelamin</Label>
             <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
-              <SelectTrigger>
+              <SelectTrigger id="gender">
                 <SelectValue placeholder="Pilih jenis kelamin" />
               </SelectTrigger>
               <SelectContent>
@@ -54,7 +74,7 @@ export function StudentForm({ student, onSubmit, onCancel }: StudentFormProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <Button type="submit">{student ? "Update" : "Tambah"}</Button>
             <Button type="button" variant="outline" onClick={onCancel}>
               Batal

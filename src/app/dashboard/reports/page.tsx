@@ -5,10 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAttendanceStats } from "@/lib/db/reports";
 import { AttendanceStats as StatsType, Coordinator } from "@/types";
 import { AttendanceStats } from "./components/AttendanceStats";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { db } from "@/lib/firebase/config";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,10 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  
   // State
   const [classId, setClassId] = useState<string>("");
   const [gender, setGender] = useState<string>("ikhwan");
@@ -29,29 +30,37 @@ export default function ReportsPage() {
   const [stats, setStats] = useState<StatsType[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Load coordinator profile
+  // Load profile and check role
   useEffect(() => {
-    async function loadProfile() {
+    async function checkRoleAndProfile() {
       if (!user) {
         setInitialLoading(false);
         return;
       }
       try {
-        const q = query(collection(db, "coordinators"), where("uid", "==", user.uid));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const data = snapshot.docs[0].data() as Coordinator;
+        // 1. Check coordinator (UID as doc ID)
+        const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
+        if (coordDoc.exists()) {
+          const data = coordDoc.data() as Coordinator;
           setClassId(data.classId);
           setGender(data.gender);
+          setIsAdmin(false);
+        } else {
+          // 2. Check admin
+          const adminDoc = await getDoc(doc(db, "admins", user.uid));
+          if (adminDoc.exists()) {
+            setIsAdmin(true);
+          }
         }
       } catch (e) {
-        console.error(e);
+        console.error("Error checking role:", e);
       } finally {
         setInitialLoading(false);
       }
     }
-    loadProfile();
+    checkRoleAndProfile();
   }, [user]);
 
   // Fetch stats
@@ -67,7 +76,7 @@ export default function ReportsPage() {
       );
       setStats(data);
     } catch (e) {
-      console.error(e);
+      console.error("Error fetching stats:", e);
     } finally {
       setLoading(false);
     }
@@ -75,37 +84,56 @@ export default function ReportsPage() {
 
   if (initialLoading) {
      return (
-       <div className="flex h-full items-center justify-center">
+       <div className="flex h-full items-center justify-center p-12">
          <Loader2 className="h-8 w-8 animate-spin text-primary" />
        </div>
      );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold tracking-tight">Laporan Absensi</h1>
 
-      <div className="grid gap-4 md:grid-cols-5 items-end bg-white p-4 rounded-lg border shadow-sm">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-5 items-end bg-white p-4 rounded-lg border shadow-sm">
         <div className="space-y-2">
           <Label>Kelas</Label>
-          <Input 
-            value={classId} 
-            onChange={(e) => setClassId(e.target.value)} 
-            placeholder="Contoh: 7A"
-          />
+          {isAdmin ? (
+            <Select value={classId} onValueChange={setClassId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_CLASSES.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm flex items-center">
+              {AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label>Gender</Label>
-          <Select value={gender} onValueChange={setGender}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ikhwan">Ikhwan</SelectItem>
-              <SelectItem value="akhwat">Akhwat</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label>Kategori</Label>
+          {isAdmin ? (
+            <Select value={gender} onValueChange={setGender}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ikhwan">Ikhwan</SelectItem>
+                <SelectItem value="akhwat">Akhwat</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm flex items-center capitalize">
+              {gender}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -124,9 +152,9 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-            <div className="space-y-2">
+        <div className="space-y-2">
           <Label>Tahun</Label>
-           <Select value={year} onValueChange={setYear}>
+          <Select value={year} onValueChange={setYear}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -143,8 +171,12 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <Button onClick={handleFetch} disabled={loading || !classId}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+        <Button onClick={handleFetch} disabled={loading || !classId} className="w-full">
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Search className="h-4 w-4 mr-2" />
+          )}
           Tampilkan
         </Button>
       </div>

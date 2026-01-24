@@ -15,14 +15,7 @@ import {
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 
-const AVAILABLE_CLASSES = [
-  { id: "7a", name: "7-A" },
-  { id: "7b", name: "7-B" },
-  { id: "8a", name: "8-A" },
-  { id: "8b", name: "8-B" },
-  { id: "9a", name: "9-A" },
-  { id: "9b", name: "9-B" },
-];
+import { AVAILABLE_CLASSES } from "@/lib/constants";
 
 interface CoordinatorFormProps {
   onSubmit: (data: Omit<Coordinator, "id" | "createdAt">) => Promise<boolean | void>;

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Student, PrayerType } from "@/types";
 import { getStudentsByClass } from "@/lib/db/students";
 import { markPresent, markAbsent, subscribeToAttendance } from "@/lib/db/attendance";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale"; // Use Indonesian locale
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { AttendanceList } from "./AttendanceList";
+import { getPrayersForDay } from "@/lib/utils";
 
 interface AttendanceRecorderProps {
   classId: string;
@@ -20,9 +22,17 @@ interface AttendanceRecorderProps {
 export function AttendanceRecorder({ classId, gender, date }: AttendanceRecorderProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPrayer, setSelectedPrayer] = useState<PrayerType>("zuhur");
+  const prayers = getPrayersForDay(gender, new Date(date));
+  const [selectedPrayer, setSelectedPrayer] = useState<PrayerType>(prayers[0] || "zuhur");
   const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+
+  // Update selected prayer if the list of prayers changes (e.g. date change)
+  useEffect(() => {
+    if (!prayers.includes(selectedPrayer)) {
+      setSelectedPrayer(prayers[0] || "zuhur");
+    }
+  }, [date, gender]);
 
   // Fetch students
   useEffect(() => {
@@ -105,13 +115,15 @@ export function AttendanceRecorder({ classId, gender, date }: AttendanceRecorder
       </CardHeader>
       <CardContent>
         <Tabs value={selectedPrayer} onValueChange={(v) => setSelectedPrayer(v as PrayerType)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="zuhur">Zuhur</TabsTrigger>
-            <TabsTrigger value="ashar">Ashar</TabsTrigger>
-            <TabsTrigger value="jumat">Jumat</TabsTrigger>
+          <TabsList className={cn("grid w-full mb-6", prayers.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
+            {prayers.map((prayer) => (
+              <TabsTrigger key={prayer} value={prayer} className="capitalize">
+                {prayer === "jumat" ? "Jum'at" : prayer}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          {["zuhur", "ashar", "jumat"].map((prayer) => (
+          {prayers.map((prayer) => (
             <TabsContent key={prayer} value={prayer} className="mt-0">
               {loading ? (
                 <div className="flex justify-center p-12">
