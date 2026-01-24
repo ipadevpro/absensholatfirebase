@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Student } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllStudents, addStudent, updateStudent, deleteStudent } from "@/lib/db/students";
@@ -113,7 +114,7 @@ export default function StudentsPage() {
         open={showDelegation}
         onOpenChange={setShowDelegation}
         onSuccess={() => {
-          alert("Akun koordinator berhasil dibuat!");
+          toast.success("Akun koordinator berhasil dibuat!");
           loadStudents();
         }}
       />
@@ -122,7 +123,7 @@ export default function StudentsPage() {
         open={showBulkAdd}
         onOpenChange={setShowBulkAdd}
         onSuccess={() => {
-          alert("Berhasil menambahkan banyak siswa!");
+          toast.success("Berhasil menambahkan banyak siswa!");
           loadStudents();
         }}
       />
