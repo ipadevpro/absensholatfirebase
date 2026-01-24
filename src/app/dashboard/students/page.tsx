@@ -10,6 +10,16 @@ import { StudentForm } from "./components/StudentForm";
 import { DelegationDialog } from "./components/DelegationDialog";
 import { BulkStudentDialog } from "./components/BulkStudentDialog";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, UserPlus, Users2 } from "lucide-react";
 
 export default function StudentsPage() {
@@ -20,6 +30,7 @@ export default function StudentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [showDelegation, setShowDelegation] = useState(false);
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (role === "admin") {
@@ -28,8 +39,12 @@ export default function StudentsPage() {
   }, [role]);
 
   const loadStudents = async () => {
-    const data = await getAllStudents();
-    setStudents(data);
+    try {
+      const data = await getAllStudents();
+      setStudents(data);
+    } catch (error: any) {
+      toast.error("Gagal memuat data siswa: " + error.message);
+    }
   };
 
   if (authLoading) return null;
@@ -46,27 +61,44 @@ export default function StudentsPage() {
   }
 
   const handleAdd = async (data: Omit<Student, "id" | "createdAt">) => {
-    await addStudent(data);
-    setShowForm(false);
-    loadStudents();
-    toast.success("Siswa berhasil ditambahkan");
+    try {
+      await addStudent(data);
+      setShowForm(false);
+      loadStudents();
+      toast.success("Siswa berhasil ditambahkan");
+    } catch (error: any) {
+      toast.error("Gagal menambahkan siswa: " + error.message);
+    }
   };
 
   const handleUpdate = async (data: Omit<Student, "id" | "createdAt">) => {
     if (editingStudent) {
-      await updateStudent(editingStudent.id, data);
-      setEditingStudent(null);
-      setShowForm(false);
-      loadStudents();
-      toast.success("Siswa berhasil diperbarui");
+      try {
+        await updateStudent(editingStudent.id, data);
+        setEditingStudent(null);
+        setShowForm(false);
+        loadStudents();
+        toast.success("Siswa berhasil diperbarui");
+      } catch (error: any) {
+        toast.error("Gagal memperbarui siswa: " + error.message);
+      }
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
-      await deleteStudent(id);
+    setStudentToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+    try {
+      await deleteStudent(studentToDelete);
       loadStudents();
       toast.success("Siswa berhasil dihapus");
+    } catch (error: any) {
+      toast.error("Gagal menghapus siswa: " + error.message);
+    } finally {
+      setStudentToDelete(null);
     }
   };
 
@@ -130,6 +162,23 @@ export default function StudentsPage() {
           loadStudents();
         }}
       />
+
+      <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Siswa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus siswa ini? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
