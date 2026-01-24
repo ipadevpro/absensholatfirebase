@@ -1,7 +1,7 @@
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, any>[], filename: string) {
   if (data.length === 0) return;
   
-  const headers = Object.keys(data[0]).join(",");
+  const headers = Object.keys(data[0] || {}).join(",");
   const rows = data.map(row => 
     Object.values(row).map(value => `"${String(value).replace(/"/g, '""')}"`).join(",")
   );
@@ -17,4 +17,9 @@ export function exportToCSV(data: any[], filename: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+
+  // Free up memory
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 100);
 }
