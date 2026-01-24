@@ -17,7 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/export";
+import { toast } from "sonner";
+
+function getGrade(percentage: number): string {
+  if (percentage >= 90) return "A";
+  if (percentage >= 80) return "B";
+  if (percentage >= 70) return "C";
+  if (percentage >= 60) return "D";
+  return "E";
+}
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -80,6 +90,27 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExport = () => {
+    if (stats.length === 0) {
+      toast.error("Tidak ada data untuk diekspor");
+      return;
+    }
+    
+    const exportData = stats.map(s => ({
+      "Nama Siswa": s.studentName,
+      "Jumlah Hadir": s.attended,
+      "Total Sholat": s.totalPrayers,
+      "Persentase": `${s.percentage}%`,
+      "Nilai": getGrade(s.percentage)
+    }));
+    
+    const className = AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId;
+    const fileName = `Laporan_Absen_${className}_${month}_${year}`;
+    
+    exportToCSV(exportData, fileName);
+    toast.success("Laporan berhasil diunduh");
   };
 
   if (initialLoading) {
@@ -171,14 +202,19 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <Button onClick={handleFetch} disabled={loading || !classId} className="w-full">
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Search className="h-4 w-4 mr-2" />
-          )}
-          Tampilkan
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:col-span-1">
+          <Button onClick={handleFetch} disabled={loading || !classId} className="flex-1">
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Search className="h-4 w-4 mr-2" />
+            )}
+            Tampilkan
+          </Button>
+          <Button onClick={handleExport} variant="outline" disabled={loading || stats.length === 0} title="Export CSV">
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <AttendanceStats stats={stats} />
