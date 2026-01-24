@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Gender } from "@/types";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,9 @@ export function BulkStudentDialog({
     // Validation
     const invalidRows = rows.filter((row) => !row.name || !row.classId);
     if (invalidRows.length > 0) {
-      setError("Mohon lengkapi nama dan kelas untuk semua baris.");
+      const msg = "Mohon lengkapi nama dan kelas untuk semua baris.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -102,7 +105,9 @@ export function BulkStudentDialog({
       setRows([{ id: Math.random().toString(), name: "", classId: "", gender: "ikhwan" }]);
     } catch (err: any) {
       console.error("Bulk add error:", err);
-      setError("Terjadi kesalahan saat menyimpan data.");
+      const msg = "Terjadi kesalahan saat menyimpan data.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }

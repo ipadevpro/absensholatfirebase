@@ -49,6 +49,7 @@ export default function StudentsPage() {
     await addStudent(data);
     setShowForm(false);
     loadStudents();
+    toast.success("Siswa berhasil ditambahkan");
   };
 
   const handleUpdate = async (data: Omit<Student, "id" | "createdAt">) => {
@@ -57,6 +58,7 @@ export default function StudentsPage() {
       setEditingStudent(null);
       setShowForm(false);
       loadStudents();
+      toast.success("Siswa berhasil diperbarui");
     }
   };
 
@@ -64,6 +66,7 @@ export default function StudentsPage() {
     if (confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
       await deleteStudent(id);
       loadStudents();
+      toast.success("Siswa berhasil dihapus");
     }
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Student } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,10 +57,14 @@ export function DelegationDialog({
         setEmail("");
         setPassword("");
       } else {
-        setError(result.error || "Gagal membuat akun koordinator");
+        const msg = result.error || "Gagal membuat akun koordinator";
+        setError(msg);
+        toast.error(msg);
       }
     } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan sistem");
+      const msg = err.message || "Terjadi kesalahan sistem";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
