@@ -11,6 +11,11 @@ service cloud.firestore {
       return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Fungsi isSupervisor mengecek keberadaan dokumen UID di koleksi supervisors
+    function isSupervisor() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/supervisors/$(request.auth.uid));
+    }
+
     // Fungsi isCoordinator mengecek keberadaan dokumen UID di koleksi coordinators
     function isCoordinator() {
       return isAuthenticated() && exists(/databases/$(database)/documents/coordinators/$(request.auth.uid));
@@ -18,28 +23,40 @@ service cloud.firestore {
 
     // Aturan untuk koleksi Students
     match /students/{studentId} {
-      allow read: if isGuru() || isCoordinator();
+      allow read: if isGuru() || isSupervisor() || isCoordinator();
       allow write: if isGuru();
     }
 
     // Aturan untuk koleksi Coordinators
     match /coordinators/{coordinatorId} {
+      // User boleh membaca datanya sendiri, atau Admin/Supervisor boleh membaca semua
+      allow read: if isGuru() || isSupervisor() || (isAuthenticated() && request.auth.uid == coordinatorId);
+      allow write: if isGuru();
+    }
+
+    // Aturan untuk koleksi Supervisors
+    match /supervisors/{supervisorId} {
       // User boleh membaca datanya sendiri, atau Admin boleh membaca semua
-      allow read: if isGuru() || (isAuthenticated() && request.auth.uid == coordinatorId);
+      allow read: if isGuru() || (isAuthenticated() && request.auth.uid == supervisorId);
       allow write: if isGuru();
     }
 
     // Aturan untuk koleksi Attendance
     match /attendance/{attendanceId} {
-      allow read: if isGuru() || isCoordinator();
-      allow write: if isGuru() || isCoordinator();
+      allow read: if isGuru() || isSupervisor() || isCoordinator();
+      allow write: if isGuru() || isSupervisor() || isCoordinator();
     }
     
     // Aturan untuk koleksi Admins
     match /admins/{adminId} {
-      // PENTING: User harus boleh membaca dokumennya sendiri untuk keperluan pengecekan role saat login
       allow read: if isAuthenticated() && request.auth.uid == adminId || isGuru();
       allow write: if false; // Admin hanya bisa ditambah via Console/Admin SDK
+    }
+
+    // Aturan untuk koleksi Settings
+    match /settings/{settingId} {
+      allow read: if isGuru() || isSupervisor() || isCoordinator();
+      allow write: if isGuru();
     }
   }
 }
