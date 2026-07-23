@@ -41,7 +41,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 gap-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Absen Sholat</CardTitle>
@@ -79,6 +79,9 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      <footer className="text-xs text-gray-400 text-center font-medium mt-2">
+        Dikembangkan oleh Devi Saidulloh, S.Pd., Gr.
+      </footer>
     </div>
   );
 }
