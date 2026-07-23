@@ -15,11 +15,15 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { format, subDays, isWeekend } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import { Loader2, CalendarClock } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { getPrayersForDay } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 function AttendanceContent() {
   const { user } = useAuth();
@@ -34,6 +38,7 @@ function AttendanceContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [missingRecords, setMissingRecords] = useState<{ date: string; prayer: PrayerType }[]>([]);
 
   useEffect(() => {
     async function checkRoleAndProfile() {
@@ -47,6 +52,28 @@ function AttendanceContent() {
           setClassId(coordinatorData.classId);
           setGender(coordinatorData.gender);
           setIsAdmin(false);
+
+          // Check last 5 school days for missing attendance
+          const missing: { date: string; prayer: PrayerType }[] = [];
+          const today = new Date();
+          
+          for (let i = 0; i < 5; i++) {
+            const checkDate = subDays(today, i);
+            if (isWeekend(checkDate)) continue;
+
+            const dateStr = format(checkDate, "yyyy-MM-dd");
+            const expectedPrayers = getPrayersForDay(coordinatorData.gender, checkDate);
+
+            for (const prayer of expectedPrayers) {
+              const docId = `${dateStr}_${coordinatorData.classId}_${coordinatorData.gender}_${prayer}`;
+              const record = await getDoc(doc(db, "attendance", docId));
+              
+              if (!record.exists()) {
+                missing.push({ date: dateStr, prayer });
+              }
+            }
+          }
+          setMissingRecords(missing);
         } else {
           const adminDoc = await getDoc(doc(db, "admins", user.uid));
           if (adminDoc.exists()) {
@@ -93,6 +120,38 @@ function AttendanceContent() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col gap-6">
         <h1 className="text-3xl font-bold tracking-tight font-serif text-emerald-900">Absensi Sholat</h1>
+
+        {missingRecords.length > 0 && (
+          <Card className="border-none shadow-md bg-amber-50 rounded-[2rem] overflow-hidden animate-in fade-in duration-300">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-amber-100 p-4 rounded-3xl text-amber-600 shadow-inner">
+                  <CalendarClock size={32} />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-lg font-serif font-bold text-amber-950">Ada Absensi Yang Terlewat!</h3>
+                  <p className="text-sm text-amber-800 mt-1">
+                    Anda belum mengisi absensi sholat untuk jadwal berikut. Silakan klik tombol di bawah untuk langsung mengisinya.
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2 max-w-md">
+                  {missingRecords.map((record, i) => (
+                    <Button 
+                      key={i} 
+                      onClick={() => {
+                        window.location.href = `/dashboard/attendance?date=${record.date}&prayer=${record.prayer}`;
+                      }}
+                      variant="outline" 
+                      className="text-[10px] h-8 rounded-full border-amber-200 bg-white hover:bg-amber-100 hover:text-amber-900 capitalize font-bold"
+                    >
+                      {format(new Date(record.date), "EEE, dd MMM", { locale: idLocale })} • {record.prayer === 'jumat' ? "Jum'at" : record.prayer}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/60 backdrop-blur-md p-4 rounded-[2rem] shadow-sm border border-emerald-50">
           <div className="space-y-2">
