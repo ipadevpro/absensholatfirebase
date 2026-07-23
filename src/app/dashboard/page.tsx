@@ -30,6 +30,8 @@ import { Coordinator, PrayerType, Student, Supervisor } from "@/types";
 import { format, subDays, isWeekend } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
+import { getAttendanceStartDate, updateAttendanceStartDate } from "@/lib/db/settings";
+import { toast } from "sonner";
 
 interface MissingRecord {
   date: string;
@@ -62,6 +64,10 @@ export default function DashboardPage() {
   const [totalSupervisors, setTotalSupervisors] = useState(0);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [missingToday, setMissingToday] = useState<MissingAttendanceToday[]>([]);
+
+  // Settings states
+  const [attendanceStartDate, setAttendanceStartDate] = useState<string>("");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Coordinator stats
   const [coordStudentCount, setCoordStudentCount] = useState(0);
@@ -104,6 +110,10 @@ export default function DashboardPage() {
 
           const supervisorsSnap = await getDocs(collection(db, "supervisors"));
           setTotalSupervisors(supervisorsSnap.size);
+
+          // Fetch attendance start date setting
+          const startDateStr = await getAttendanceStartDate();
+          setAttendanceStartDate(startDateStr || "");
 
           // 2. Fetch Recent Activities (order by updatedAt desc)
           try {
@@ -223,6 +233,7 @@ export default function DashboardPage() {
             setCoordMonthRate(rate);
 
             // 5. Check last 5 school days for tasks
+            const startDateStr = await getAttendanceStartDate();
             const missing: MissingRecord[] = [];
             const today = new Date();
             
@@ -231,6 +242,8 @@ export default function DashboardPage() {
               if (isWeekend(date)) continue;
 
               const dateStr = format(date, "yyyy-MM-dd");
+              if (startDateStr && dateStr < startDateStr) continue;
+
               const expectedPrayersForDay = getPrayersForDay(coordData.gender, date);
 
               for (const prayer of expectedPrayersForDay) {
@@ -446,6 +459,45 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {role === "admin" && (
+        <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
+          <CardHeader className="px-2 pt-2 pb-4">
+            <CardTitle className="text-xl font-serif text-gray-900">Pengaturan Tanggal Mulai Absensi</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Atur tanggal mulai kalkulasi absen. Jadwal sebelum tanggal ini akan diabaikan pada peringatan koordinator.
+            </p>
+          </CardHeader>
+          <CardContent className="px-2 pb-2 flex flex-col sm:flex-row gap-4 items-end">
+            <div className="space-y-2 flex-1 w-full">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Mulai</label>
+              <input
+                type="date"
+                value={attendanceStartDate}
+                onChange={(e) => setAttendanceStartDate(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-emerald-100 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                setIsSavingSettings(true);
+                try {
+                  await updateAttendanceStartDate(attendanceStartDate);
+                  toast.success("Tanggal mulai absensi berhasil diperbarui");
+                } catch (err: any) {
+                  toast.error("Gagal memperbarui pengaturan: " + err.message);
+                } finally {
+                  setIsSavingSettings(false);
+                }
+              }}
+              disabled={isSavingSettings}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-10 font-medium shadow-md shadow-emerald-100 w-full sm:w-auto"
+            >
+              {isSavingSettings ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 4. RECENT ACTIVITY (FOR ADMINS) */}
       {role === "admin" && (
         <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
@@ -487,6 +539,45 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {role === "admin" && (
+        <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
+          <CardHeader className="px-2 pt-2 pb-4">
+            <CardTitle className="text-xl font-serif text-gray-900">Pengaturan Tanggal Mulai Absensi</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Atur tanggal mulai kalkulasi absen. Jadwal sebelum tanggal ini akan diabaikan pada peringatan koordinator.
+            </p>
+          </CardHeader>
+          <CardContent className="px-2 pb-2 flex flex-col sm:flex-row gap-4 items-end">
+            <div className="space-y-2 flex-1 w-full">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Mulai</label>
+              <input
+                type="date"
+                value={attendanceStartDate}
+                onChange={(e) => setAttendanceStartDate(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-emerald-100 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                setIsSavingSettings(true);
+                try {
+                  await updateAttendanceStartDate(attendanceStartDate);
+                  toast.success("Tanggal mulai absensi berhasil diperbarui");
+                } catch (err: any) {
+                  toast.error("Gagal memperbarui pengaturan: " + err.message);
+                } finally {
+                  setIsSavingSettings(false);
+                }
+              }}
+              disabled={isSavingSettings}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-10 font-medium shadow-md shadow-emerald-100 w-full sm:w-auto"
+            >
+              {isSavingSettings ? "Menyimpan..." : "Simpan"}
+            </Button>
           </CardContent>
         </Card>
       )}
