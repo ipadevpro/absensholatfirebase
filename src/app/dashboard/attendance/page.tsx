@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AttendanceRecorder } from "./components/AttendanceRecorder";
 import { db } from "@/lib/firebase/config";
-import { Coordinator, PrayerType } from "@/types";
+import { Coordinator, PrayerType, Supervisor } from "@/types";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import {
   Select,

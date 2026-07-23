@@ -30,6 +30,7 @@ export default function SupervisorsList({ initialSupervisors }: SupervisorsListP
           name: data.name,
           uid: result.uid,
           id: result.uid,
+          classes: data.classes,
           createdAt: new Date()
         };
         setSupervisors([...supervisors, newSup]);

@@ -101,8 +101,6 @@ export default function DashboardPage() {
       if (!user || !role) return;
       setChecking(true);
       try {
-      setChecking(true);
-      try {
         if (role === "admin") {
           // 1. Fetch overall counts
           const studentsSnap = await getDocs(collection(db, "students"));
