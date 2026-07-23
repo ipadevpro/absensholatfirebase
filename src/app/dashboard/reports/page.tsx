@@ -30,7 +30,7 @@ function getGrade(percentage: number): string {
 }
 
 export default function ReportsPage() {
-  const { user } = useAuth();
+  const { role, profile, loading: authLoading } = useAuth();
   
   // State
   const [classId, setClassId] = useState<string>("");
@@ -45,46 +45,24 @@ export default function ReportsPage() {
 
   // Load profile and check role
   useEffect(() => {
-    async function checkRoleAndProfile() {
-      if (!user) {
-        setInitialLoading(false);
-        return;
+    if (authLoading) return;
+    
+    if (role === "coordinator" && profile) {
+      setClassId(profile.classId);
+      setGender(profile.gender);
+      setIsAdmin(false);
+    } else if (role === "supervisor" && profile) {
+      const assignedClasses = profile.classes || [];
+      setSupervisorClasses(assignedClasses);
+      if (assignedClasses.length > 0) {
+        setClassId(assignedClasses[0]);
       }
-      try {
-        // 1. Check coordinator (UID as doc ID)
-        const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
-        if (coordDoc.exists()) {
-          const data = coordDoc.data() as Coordinator;
-          setClassId(data.classId);
-          setGender(data.gender);
-          setIsAdmin(false);
-        } else {
-          // 2. Check admin
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          if (adminDoc.exists()) {
-            setIsAdmin(true);
-          } else {
-            // 3. Check supervisor
-            const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
-            if (supervisorDoc.exists()) {
-              const supervisorData = supervisorDoc.data() as Supervisor;
-              const assignedClasses = supervisorData.classes || [];
-              setSupervisorClasses(assignedClasses);
-              if (assignedClasses.length > 0) {
-                setClassId(assignedClasses[0]);
-              }
-              setIsAdmin(true);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Error checking role:", e);
-      } finally {
-        setInitialLoading(false);
-      }
+      setIsAdmin(true);
+    } else if (role === "admin") {
+      setIsAdmin(true);
     }
-    checkRoleAndProfile();
-  }, [user]);
+    setInitialLoading(false);
+  }, [role, profile, authLoading]);
 
   // Fetch stats
   const handleFetch = async () => {

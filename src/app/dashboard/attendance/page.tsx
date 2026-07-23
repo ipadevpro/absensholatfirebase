@@ -27,7 +27,7 @@ import { getPrayersForDay } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
 function AttendanceContent() {
-  const { user } = useAuth();
+  const { role, profile, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   
   const paramDate = searchParams.get("date");
@@ -43,16 +43,14 @@ function AttendanceContent() {
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
   useEffect(() => {
-    async function checkRoleAndProfile() {
-      if (!user) return;
+    async function loadProfileAndMissing() {
+      if (authLoading) return;
+      
       try {
         setLoading(true);
-        const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
-        
-        if (coordDoc.exists()) {
-          const coordinatorData = coordDoc.data() as Coordinator;
-          setClassId(coordinatorData.classId);
-          setGender(coordinatorData.gender);
+        if (role === "coordinator" && profile) {
+          setClassId(profile.classId);
+          setGender(profile.gender);
           setIsAdmin(false);
 
           // Check last 5 school days for missing attendance
@@ -67,10 +65,10 @@ function AttendanceContent() {
             const dateStr = format(checkDate, "yyyy-MM-dd");
             if (startDateStr && dateStr < startDateStr) continue;
 
-            const expectedPrayers = getPrayersForDay(coordinatorData.gender, checkDate);
+            const expectedPrayers = getPrayersForDay(profile.gender, checkDate);
 
             for (const prayer of expectedPrayers) {
-              const docId = `${dateStr}_${coordinatorData.classId}_${coordinatorData.gender}_${prayer}`;
+              const docId = `${dateStr}_${profile.classId}_${profile.gender}_${prayer}`;
               const record = await getDoc(doc(db, "attendance", docId));
               
               if (!record.exists()) {
@@ -79,34 +77,27 @@ function AttendanceContent() {
             }
           }
           setMissingRecords(missing);
-        } else {
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          if (adminDoc.exists()) {
-            setIsAdmin(true);
-          } else {
-            const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
-            if (supervisorDoc.exists()) {
-              const supervisorData = supervisorDoc.data() as Supervisor;
-              const assignedClasses = supervisorData.classes || [];
-              setSupervisorClasses(assignedClasses);
-              if (assignedClasses.length > 0) {
-                setClassId(assignedClasses[0]);
-              }
-              setIsAdmin(true);
-            } else {
-              setError("Profil tidak ditemukan. Pastikan UID Anda terdaftar sebagai Admin, Pembina, atau Koordinator.");
-            }
+        } else if (role === "supervisor" && profile) {
+          const assignedClasses = profile.classes || [];
+          setSupervisorClasses(assignedClasses);
+          if (assignedClasses.length > 0) {
+            setClassId(assignedClasses[0]);
           }
+          setIsAdmin(true);
+        } else if (role === "admin") {
+          setIsAdmin(true);
+        } else {
+          setError("Profil tidak ditemukan. Pastikan UID Anda terdaftar sebagai Admin, Pembina, atau Koordinator.");
         }
       } catch (err) {
-        console.error("Error checking role:", err);
+        console.error("Error loading profile details:", err);
         setError("Gagal memuat profil.");
       } finally {
         setLoading(false);
       }
     }
-    checkRoleAndProfile();
-  }, [user]);
+    loadProfileAndMissing();
+  }, [role, profile, authLoading]);
 
   if (loading) {
     return (

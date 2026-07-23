@@ -54,7 +54,7 @@ interface MissingAttendanceToday {
 }
 
 export default function DashboardPage() {
-  const { role, user } = useAuth();
+  const { role, user, profile, loading: authLoading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [coordinator, setCoordinator] = useState<Coordinator | null>(null);
 
@@ -136,23 +136,19 @@ export default function DashboardPage() {
               .slice(0, 5);
             setRecentActivities(activities);
           }
-        } else if (role === "supervisor") {
-          // 1. Fetch Supervisor Profile
-          const supDoc = await getDoc(doc(db, "supervisors", user.uid));
-          if (supDoc.exists()) {
-            const supervisorData = supDoc.data() as Supervisor;
-            const assignedClasses = supervisorData.classes || [];
-            setSupervisorClassCount(assignedClasses.length);
+        } else if (role === "supervisor" && profile) {
+          const assignedClasses = profile.classes || [];
+          setSupervisorClassCount(assignedClasses.length);
 
-            // a) Fetch students count in assigned classes
-            if (assignedClasses.length > 0) {
-              const studentsQuery = query(
-                collection(db, "students"),
-                where("classId", "in", assignedClasses)
-              );
-              const studentsSnap = await getDocs(studentsQuery);
-              setTotalStudents(studentsSnap.size);
-            } else {
+          // a) Fetch students count in assigned classes
+          if (assignedClasses.length > 0) {
+            const studentsQuery = query(
+              collection(db, "students"),
+              where("classId", "in", assignedClasses)
+            );
+            const studentsSnap = await getDocs(studentsQuery);
+            setTotalStudents(studentsSnap.size);
+          } else {
               setTotalStudents(0);
             }
 
@@ -191,7 +187,7 @@ export default function DashboardPage() {
             const presentRecords = new Set(attendanceSnap.docs.map(doc => doc.id));
 
             const missingList: MissingAttendanceToday[] = [];
-            assignedClasses.forEach(classId => {
+            assignedClasses.forEach((classId: string) => {
               const cls = AVAILABLE_CLASSES.find(c => c.id === classId);
               if (cls) {
                 (["ikhwan", "akhwat"] as const).forEach(gender => {
@@ -210,95 +206,89 @@ export default function DashboardPage() {
               }
             });
             setMissingToday(missingList);
+        } else if (role === "coordinator" && profile) {
+          setCoordinator(profile);
+
+          // 2. Count class students
+          const classStudentsQuery = query(
+            collection(db, "students"),
+            where("classId", "==", profile.classId),
+            where("gender", "==", profile.gender)
+          );
+          const classStudentsSnap = await getDocs(classStudentsQuery);
+          setCoordStudentCount(classStudentsSnap.size);
+
+          // 3. Today's attendance status
+          const todayStr = format(new Date(), "yyyy-MM-dd");
+          const expectedPrayers = getPrayersForDay(profile.gender, new Date());
+          const todayStatus: { prayer: PrayerType; filled: boolean }[] = [];
+
+          for (const prayer of expectedPrayers) {
+            const docId = `${todayStr}_${profile.classId}_${profile.gender}_${prayer}`;
+            const record = await getDoc(doc(db, "attendance", docId));
+            todayStatus.push({
+              prayer,
+              filled: record.exists()
+            });
           }
-        } else if (role === "coordinator") {
-          // 1. Get Coordinator Profile
-          const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
-          if (coordDoc.exists()) {
-            const coordData = coordDoc.data() as Coordinator;
-            setCoordinator(coordData);
+          setCoordTodayStatus(todayStatus);
 
-            // 2. Count class students
-            const classStudentsQuery = query(
-              collection(db, "students"),
-              where("classId", "==", coordData.classId),
-              where("gender", "==", coordData.gender)
-            );
-            const classStudentsSnap = await getDocs(classStudentsQuery);
-            setCoordStudentCount(classStudentsSnap.size);
+          // 4. Monthly Attendance Rate
+          const start = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd");
+          const end = format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), "yyyy-MM-dd");
+          const monthlyQuery = query(
+            collection(db, "attendance"),
+            where("classId", "==", profile.classId),
+            where("gender", "==", profile.gender),
+            where("date", ">=", start),
+            where("date", "<=", end)
+          );
+          const monthlySnap = await getDocs(monthlyQuery);
+          const monthlyRecords = monthlySnap.docs.map(d => d.data());
 
-            // 3. Today's attendance status
-            const todayStr = format(new Date(), "yyyy-MM-dd");
-            const expectedPrayers = getPrayersForDay(coordData.gender, new Date());
-            const todayStatus: { prayer: PrayerType; filled: boolean }[] = [];
+          let totalHadirCount = 0;
+          let totalPossiblePrayers = monthlyRecords.length * classStudentsSnap.size;
 
-            for (const prayer of expectedPrayers) {
-              const docId = `${todayStr}_${coordData.classId}_${coordData.gender}_${prayer}`;
-              const record = await getDoc(doc(db, "attendance", docId));
-              todayStatus.push({
-                prayer,
-                filled: record.exists()
+          monthlyRecords.forEach(record => {
+            if (record.statuses) {
+              classStudentsSnap.docs.forEach(stDoc => {
+                const status = record.statuses[stDoc.id];
+                if (status === "hadir" || status === "haid") {
+                  totalHadirCount += 1;
+                }
               });
             }
-            setCoordTodayStatus(todayStatus);
+          });
 
-            // 4. Monthly Attendance Rate
-            const start = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd");
-            const end = format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), "yyyy-MM-dd");
-            const monthlyQuery = query(
-              collection(db, "attendance"),
-              where("classId", "==", coordData.classId),
-              where("gender", "==", coordData.gender),
-              where("date", ">=", start),
-              where("date", "<=", end)
-            );
-            const monthlySnap = await getDocs(monthlyQuery);
-            const monthlyRecords = monthlySnap.docs.map(d => d.data());
+          const rate = totalPossiblePrayers > 0 
+            ? Math.round((totalHadirCount / totalPossiblePrayers) * 100)
+            : 0;
+          setCoordMonthRate(rate);
 
-            let totalHadirCount = 0;
-            let totalPossiblePrayers = monthlyRecords.length * classStudentsSnap.size;
+          // 5. Check last 5 school days for tasks
+          const startDateStr = await getAttendanceStartDate();
+          const missing: MissingRecord[] = [];
+          const today = new Date();
+          
+          for (let i = 0; i < 5; i++) {
+            const date = subDays(today, i);
+            if (isWeekend(date)) continue;
 
-            monthlyRecords.forEach(record => {
-              if (record.statuses) {
-                classStudentsSnap.docs.forEach(stDoc => {
-                  const status = record.statuses[stDoc.id];
-                  if (status === "hadir" || status === "haid") {
-                    totalHadirCount += 1;
-                  }
-                });
-              }
-            });
+            const dateStr = format(date, "yyyy-MM-dd");
+            if (startDateStr && dateStr < startDateStr) continue;
 
-            const rate = totalPossiblePrayers > 0 
-              ? Math.round((totalHadirCount / totalPossiblePrayers) * 100)
-              : 0;
-            setCoordMonthRate(rate);
+            const expectedPrayersForDay = getPrayersForDay(profile.gender, date);
 
-            // 5. Check last 5 school days for tasks
-            const startDateStr = await getAttendanceStartDate();
-            const missing: MissingRecord[] = [];
-            const today = new Date();
-            
-            for (let i = 0; i < 5; i++) {
-              const date = subDays(today, i);
-              if (isWeekend(date)) continue;
-
-              const dateStr = format(date, "yyyy-MM-dd");
-              if (startDateStr && dateStr < startDateStr) continue;
-
-              const expectedPrayersForDay = getPrayersForDay(coordData.gender, date);
-
-              for (const prayer of expectedPrayersForDay) {
-                const docId = `${dateStr}_${coordData.classId}_${coordData.gender}_${prayer}`;
-                const record = await getDoc(doc(db, "attendance", docId));
-                
-                if (!record.exists()) {
-                  missing.push({ date: dateStr, prayer });
-                }
+            for (const prayer of expectedPrayersForDay) {
+              const docId = `${dateStr}_${profile.classId}_${profile.gender}_${prayer}`;
+              const record = await getDoc(doc(db, "attendance", docId));
+              
+              if (!record.exists()) {
+                missing.push({ date: dateStr, prayer });
               }
             }
-            setMissingRecords(missing);
           }
+          setMissingRecords(missing);
         }
       } catch (e) {
         console.error("Error loading dashboard data:", e);
