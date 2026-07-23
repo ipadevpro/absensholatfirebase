@@ -5,7 +5,7 @@ import { User, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "f
 import { auth, db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 
-export type UserRole = "admin" | "coordinator" | null;
+export type UserRole = "admin" | "coordinator" | "supervisor" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -35,11 +35,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (adminDoc.exists()) {
             setRole("admin");
           } else {
-            const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
-            if (coordDoc.exists()) {
-              setRole("coordinator");
+            const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
+            if (supervisorDoc.exists()) {
+              setRole("supervisor");
             } else {
-              setRole(null);
+              const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
+              if (coordDoc.exists()) {
+                setRole("coordinator");
+              } else {
+                setRole(null);
+              }
             }
           }
         } catch (e) {
