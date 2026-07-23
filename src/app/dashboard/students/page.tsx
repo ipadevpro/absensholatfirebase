@@ -1,15 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Student } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllStudents, addStudent, updateStudent, deleteStudent } from "@/lib/db/students";
+import { getAllStudents, addStudent, updateStudent, deleteStudent, deleteStudents } from "@/lib/db/students";
 import { StudentList } from "./components/StudentList";
 import { StudentForm } from "./components/StudentForm";
 import { DelegationDialog } from "./components/DelegationDialog";
 import { BulkStudentDialog } from "./components/BulkStudentDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +29,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Users2 } from "lucide-react";
+import { 
+  Loader2, 
+  UserPlus, 
+  Users2, 
+  Search, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight,
+  X,
+  Trash2
+} from "lucide-react";
+import { AVAILABLE_CLASSES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function StudentsPage() {
   const { role, loading: authLoading } = useAuth();
@@ -31,6 +54,15 @@ export default function StudentsPage() {
   const [showDelegation, setShowDelegation] = useState(false);
   const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [studentIdsToDelete, setStudentIdsToDelete] = useState<string[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [classFilter, setClassFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (role === "admin") {
@@ -39,13 +71,43 @@ export default function StudentsPage() {
   }, [role]);
 
   const loadStudents = async () => {
+    setIsLoading(true);
     try {
       const data = await getAllStudents();
       setStudents(data);
     } catch (error: any) {
       toast.error("Gagal memuat data siswa: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // Filtered and Paginated Data
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesClass = classFilter === "all" || s.classId === classFilter;
+      const matchesGender = genderFilter === "all" || s.gender === genderFilter;
+      return matchesSearch && matchesClass && matchesGender;
+    });
+  }, [students, searchQuery, classFilter, genderFilter]);
+
+  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredStudents, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedStudentIds([]);
+  }, [searchQuery, classFilter, genderFilter]);
+
+  // Reset selection when page changes
+  useEffect(() => {
+    setSelectedStudentIds([]);
+  }, [currentPage]);
 
   if (authLoading) return null;
 
@@ -53,7 +115,7 @@ export default function StudentsPage() {
     return (
       <div className="flex h-full items-center justify-center text-center p-12">
         <div className="bg-red-50 text-red-600 p-8 rounded-xl border border-red-100 max-w-md">
-          <h2 className="text-xl font-bold mb-2">Akses Terbatas</h2>
+          <h2 className="text-xl font-bold mb-2 font-serif">Akses Terbatas</h2>
           <p>Maaf, halaman ini hanya dapat diakses oleh Admin (Guru).</p>
         </div>
       </div>
@@ -85,14 +147,12 @@ export default function StudentsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setStudentToDelete(id);
-  };
-
   const confirmDelete = async () => {
     if (!studentToDelete) return;
     try {
       await deleteStudent(studentToDelete);
+      // Remove deleted student from selectedStudentIds if present
+      setSelectedStudentIds((prev) => prev.filter((id) => id !== studentToDelete));
       loadStudents();
       toast.success("Siswa berhasil dihapus");
     } catch (error: any) {
@@ -102,54 +162,284 @@ export default function StudentsPage() {
     }
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!studentIdsToDelete || studentIdsToDelete.length === 0) return;
+    try {
+      await deleteStudents(studentIdsToDelete);
+      setSelectedStudentIds([]);
+      loadStudents();
+      toast.success(`${studentIdsToDelete.length} siswa berhasil dihapus`);
+    } catch (error: any) {
+      toast.error("Gagal menghapus siswa: " + error.message);
+    } finally {
+      setStudentIdsToDelete(null);
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setClassFilter("all");
+    setGenderFilter("all");
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">Manajemen Siswa</h1>
-        {!showForm && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowBulkAdd(true)}>
-              <Users2 size={18} className="mr-2" />
-              Bulk Tambah
-            </Button>
-            <Button onClick={() => setShowForm(true)}>
-              <UserPlus size={18} className="mr-2" />
-              Tambah Siswa
-            </Button>
+    <div className="space-y-6 max-w-5xl mx-auto pb-20 md:pb-8">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-emerald-900 tracking-tight">Manajemen Siswa</h1>
+            <p className="text-sm text-muted-foreground mt-1">Kelola data seluruh siswa SMP PGII 1 Bandung</p>
+          </div>
+          {!showForm && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowBulkAdd(true)}
+                className="rounded-xl border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                <Users2 size={18} className="mr-2" />
+                Bulk Tambah
+              </Button>
+              <Button 
+                onClick={() => setShowForm(true)}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200"
+              >
+                <UserPlus size={18} className="mr-2" />
+                Tambah Siswa
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Filters and Search Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white/60 backdrop-blur-md p-4 rounded-3xl border border-emerald-50 shadow-sm">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600/40" />
+            <Input
+              placeholder="Cari nama siswa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 rounded-2xl bg-white border-emerald-50 focus-visible:ring-emerald-500"
+            />
+          </div>
+          
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="rounded-2xl border-emerald-50 bg-white">
+              <div className="flex items-center gap-2">
+                <Filter size={14} className="text-emerald-600/40" />
+                <SelectValue placeholder="Pilih Kelas" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-emerald-50">
+              <SelectItem value="all">Semua Kelas</SelectItem>
+              {AVAILABLE_CLASSES.map((cls) => (
+                <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={genderFilter} onValueChange={setGenderFilter}>
+            <SelectTrigger className="rounded-2xl border-emerald-50 bg-white">
+              <SelectValue placeholder="Gender" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-emerald-50">
+              <SelectItem value="all">Semua Gender</SelectItem>
+              <SelectItem value="ikhwan">Ikhwan</SelectItem>
+              <SelectItem value="akhwat">Akhwat</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Active Filter Indicators */}
+        {(searchQuery || classFilter !== "all" || genderFilter !== "all") && (
+          <div className="flex flex-wrap items-center gap-2 px-2">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mr-2">Filter Aktif:</p>
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
+                "{searchQuery}"
+                <X size={12} className="cursor-pointer" onClick={() => setSearchQuery("")} />
+              </span>
+            )}
+            {classFilter !== "all" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
+                Kelas: {AVAILABLE_CLASSES.find(c => c.id === classFilter)?.name}
+                <X size={12} className="cursor-pointer" onClick={() => setClassFilter("all")} />
+              </span>
+            )}
+            {genderFilter !== "all" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100">
+                {genderFilter === 'ikhwan' ? 'Ikhwan' : 'Akhwat'}
+                <X size={12} className="cursor-pointer" onClick={() => setGenderFilter("all")} />
+              </span>
+            )}
+            <button 
+              onClick={resetFilters}
+              className="text-xs text-red-500 hover:underline font-medium ml-2"
+            >
+              Hapus Semua
+            </button>
           </div>
         )}
       </div>
 
       {showForm && (
-        <StudentForm
-          student={editingStudent || undefined}
-          onSubmit={editingStudent ? handleUpdate : handleAdd}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingStudent(null);
-          }}
-        />
+        <div className="staggered-reveal">
+          <StudentForm
+            student={editingStudent || undefined}
+            onSubmit={editingStudent ? handleUpdate : handleAdd}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingStudent(null);
+            }}
+          />
+        </div>
       )}
 
-      <StudentList
-        students={students}
-        onEdit={(student) => {
-          setEditingStudent(student);
-          setShowForm(true);
-        }}
-        onDelete={handleDelete}
-        onDelegate={(student) => {
-          setDelegatingStudent(student);
-          setShowDelegation(true);
-        }}
-      />
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center p-24 gap-4 bg-white/40 backdrop-blur-sm rounded-[2.5rem] border border-dashed">
+          <Loader2 className="h-12 w-12 animate-spin text-emerald-600/20" />
+          <p className="text-sm font-medium text-emerald-600/40 animate-pulse">Memuat Data Siswa...</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {paginatedStudents.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 bg-white/80 backdrop-blur-md rounded-2xl border border-emerald-50 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedStudentIds.includes(s.id))}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      const pageIds = paginatedStudents.map(s => s.id);
+                      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...pageIds])));
+                    } else {
+                      const pageIds = paginatedStudents.map(s => s.id);
+                      setSelectedStudentIds(prev => prev.filter(id => !pageIds.includes(id)));
+                    }
+                  }}
+                  id="select-all-page"
+                  className="border-emerald-200 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md h-5 w-5"
+                />
+                <label htmlFor="select-all-page" className="text-sm font-medium text-emerald-900 cursor-pointer select-none">
+                  Pilih Semua di Halaman Ini
+                </label>
+              </div>
+              {selectedStudentIds.length > 0 && (
+                <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between sm:justify-end border-t sm:border-none pt-3 sm:pt-0 border-emerald-50 w-full sm:w-auto">
+                  <span className="text-sm font-semibold text-emerald-800">
+                    {selectedStudentIds.length} siswa terpilih
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedStudentIds([])}
+                      className="text-xs text-gray-500 hover:text-emerald-900 h-9 px-3 rounded-xl border border-emerald-100 hover:bg-emerald-50"
+                    >
+                      Batal
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setStudentIdsToDelete(selectedStudentIds)}
+                      className="bg-red-600 hover:bg-red-700 text-xs h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-lg shadow-red-200"
+                    >
+                      <Trash2 size={14} />
+                      Hapus Terpilih
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <StudentList
+            students={paginatedStudents}
+            onEdit={(student) => {
+              setEditingStudent(student);
+              setShowForm(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onDelete={(id) => setStudentToDelete(id)}
+            onDelegate={(student) => {
+              setDelegatingStudent(student);
+              setShowDelegation(true);
+            }}
+            selectedIds={selectedStudentIds}
+            onToggleSelect={handleToggleSelect}
+          />
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-6 bg-white/60 backdrop-blur-md rounded-3xl border border-emerald-50 shadow-sm">
+              <p className="text-sm text-muted-foreground">
+                Menampilkan <strong>{paginatedStudents.length}</strong> dari <strong>{filteredStudents.length}</strong> siswa
+              </p>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-xl border-emerald-100 h-10 w-10"
+                >
+                  <ChevronLeft size={18} />
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (currentPage <= 3) pageNum = i + 1;
+                    else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                    else pageNum = currentPage - 2 + i;
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={cn(
+                          "h-10 w-10 rounded-xl font-bold",
+                          currentPage === pageNum 
+                            ? "bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-100" 
+                            : "border-emerald-50 text-gray-500 hover:bg-emerald-50"
+                        )}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded-xl border-emerald-100 h-10 w-10"
+                >
+                  <ChevronRight size={18} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <DelegationDialog
         student={delegatingStudent}
         open={showDelegation}
         onOpenChange={setShowDelegation}
         onSuccess={() => {
-          toast.success("Akun koordinator berhasil dibuat!");
           loadStudents();
         }}
       />
@@ -158,23 +448,39 @@ export default function StudentsPage() {
         open={showBulkAdd}
         onOpenChange={setShowBulkAdd}
         onSuccess={() => {
-          toast.success("Berhasil menambahkan banyak siswa!");
           loadStudents();
         }}
       />
 
       <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl border-emerald-50 p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Siswa</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus siswa ini? Tindakan ini tidak dapat dibatalkan.
+            <AlertDialogTitle className="text-2xl font-serif font-bold text-red-900">Hapus Siswa?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 pt-2">
+              Tindakan ini akan menghapus data siswa secara permanen dari sistem. Anda tidak dapat membatalkan tindakan ini.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
-              Hapus
+          <AlertDialogFooter className="pt-6">
+            <AlertDialogCancel className="rounded-xl border-emerald-100">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 rounded-xl px-8">
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!studentIdsToDelete} onOpenChange={(open) => !open && setStudentIdsToDelete(null)}>
+        <AlertDialogContent className="rounded-3xl border-emerald-50 p-8">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-serif font-bold text-red-900">Hapus Siswa Terpilih?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 pt-2">
+              Tindakan ini akan menghapus <strong>{studentIdsToDelete?.length}</strong> data siswa terpilih secara permanen dari sistem. Anda tidak dapat membatalkan tindakan ini.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-6">
+            <AlertDialogCancel className="rounded-xl border-emerald-100">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete} className="bg-red-600 hover:bg-red-700 rounded-xl px-8">
+              Ya, Hapus Semua
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
