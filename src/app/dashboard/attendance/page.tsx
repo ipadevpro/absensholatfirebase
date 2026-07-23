@@ -40,6 +40,7 @@ function AttendanceContent() {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [missingRecords, setMissingRecords] = useState<{ date: string; prayer: PrayerType }[]>([]);
+  const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
   useEffect(() => {
     async function checkRoleAndProfile() {
@@ -85,6 +86,12 @@ function AttendanceContent() {
           } else {
             const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
             if (supervisorDoc.exists()) {
+              const supervisorData = supervisorDoc.data() as Supervisor;
+              const assignedClasses = supervisorData.classes || [];
+              setSupervisorClasses(assignedClasses);
+              if (assignedClasses.length > 0) {
+                setClassId(assignedClasses[0]);
+              }
               setIsAdmin(true);
             } else {
               setError("Profil tidak ditemukan. Pastikan UID Anda terdaftar sebagai Admin, Pembina, atau Koordinator.");
@@ -119,6 +126,10 @@ function AttendanceContent() {
       </div>
     );
   }
+
+  const filteredClassesForSelect = supervisorClasses.length > 0
+    ? AVAILABLE_CLASSES.filter(c => supervisorClasses.includes(c.id))
+    : AVAILABLE_CLASSES;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -178,7 +189,7 @@ function AttendanceContent() {
                     <SelectValue placeholder="Pilih kelas" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {AVAILABLE_CLASSES.map((cls) => (
+                    {filteredClassesForSelect.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.name}
                       </SelectItem>

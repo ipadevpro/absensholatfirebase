@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAttendanceStats } from "@/lib/db/reports";
-import { AttendanceStats as StatsType, Coordinator } from "@/types";
+import { AttendanceStats as StatsType, Coordinator, Supervisor } from "@/types";
 import { AttendanceStats } from "./components/AttendanceStats";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { db } from "@/lib/firebase/config";
@@ -41,6 +41,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
   // Load profile and check role
   useEffect(() => {
@@ -66,6 +67,12 @@ export default function ReportsPage() {
             // 3. Check supervisor
             const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
             if (supervisorDoc.exists()) {
+              const supervisorData = supervisorDoc.data() as Supervisor;
+              const assignedClasses = supervisorData.classes || [];
+              setSupervisorClasses(assignedClasses);
+              if (assignedClasses.length > 0) {
+                setClassId(assignedClasses[0]);
+              }
               setIsAdmin(true);
             }
           }
@@ -127,6 +134,10 @@ export default function ReportsPage() {
      );
   }
 
+  const filteredClassesForSelect = supervisorClasses.length > 0
+    ? AVAILABLE_CLASSES.filter(c => supervisorClasses.includes(c.id))
+    : AVAILABLE_CLASSES;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold tracking-tight">Laporan Absensi</h1>
@@ -140,7 +151,7 @@ export default function ReportsPage() {
                 <SelectValue placeholder="Pilih kelas" />
               </SelectTrigger>
               <SelectContent>
-                {AVAILABLE_CLASSES.map((cls) => (
+                {filteredClassesForSelect.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name}
                   </SelectItem>
