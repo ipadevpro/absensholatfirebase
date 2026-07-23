@@ -68,6 +68,7 @@ export default function DashboardPage() {
   // Settings states
   const [attendanceStartDate, setAttendanceStartDate] = useState<string>("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [supervisorClassCount, setSupervisorClassCount] = useState(0);
 
   // Coordinator stats
   const [coordStudentCount, setCoordStudentCount] = useState(0);
@@ -100,7 +101,9 @@ export default function DashboardPage() {
       if (!user || !role) return;
       setChecking(true);
       try {
-        if (role === "admin" || role === "supervisor") {
+      setChecking(true);
+      try {
+        if (role === "admin") {
           // 1. Fetch overall counts
           const studentsSnap = await getDocs(collection(db, "students"));
           setTotalStudents(studentsSnap.size);
@@ -144,28 +147,78 @@ export default function DashboardPage() {
               .slice(0, 5);
             setRecentActivities(activities);
           }
+        } else if (role === "supervisor") {
+          // 1. Fetch Supervisor Profile
+          const supDoc = await getDoc(doc(db, "supervisors", user.uid));
+          if (supDoc.exists()) {
+            const supervisorData = supDoc.data() as Supervisor;
+            const assignedClasses = supervisorData.classes || [];
+            setSupervisorClassCount(assignedClasses.length);
 
-          // 3. Supervisor missing attendance monitor for today
-          if (role === "supervisor") {
+            // a) Fetch students count in assigned classes
+            if (assignedClasses.length > 0) {
+              const studentsQuery = query(
+                collection(db, "students"),
+                where("classId", "in", assignedClasses)
+              );
+              const studentsSnap = await getDocs(studentsQuery);
+              setTotalStudents(studentsSnap.size);
+            } else {
+              setTotalStudents(0);
+            }
+
+            // b) Fetch recent activities for assigned classes
+            if (assignedClasses.length > 0) {
+              try {
+                const q = query(
+                  collection(db, "attendance"),
+                  where("classId", "in", assignedClasses),
+                  orderBy("updatedAt", "desc"),
+                  limit(5)
+                );
+                const snap = await getDocs(q);
+                setRecentActivities(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as RecentActivity)));
+              } catch (e) {
+                const fallbackQ = query(collection(db, "attendance"), where("classId", "in", assignedClasses), limit(20));
+                const snap = await getDocs(fallbackQ);
+                const sorted = snap.docs
+                  .map(doc => ({ id: doc.id, ...doc.data() } as RecentActivity))
+                  .filter(a => a.updatedAt)
+                  .sort((a, b) => {
+                    const timeA = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : new Date(a.updatedAt).getTime();
+                    const timeB = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : new Date(b.updatedAt).getTime();
+                    return timeB - timeA;
+                  })
+                  .slice(0, 5);
+                setRecentActivities(sorted);
+              }
+            } else {
+              setRecentActivities([]);
+            }
+
+            // c) Today's missing attendance monitor for assigned classes
             const todayStr = format(new Date(), "yyyy-MM-dd");
             const attendanceSnap = await getDocs(query(collection(db, "attendance"), where("date", "==", todayStr)));
             const presentRecords = new Set(attendanceSnap.docs.map(doc => doc.id));
 
             const missingList: MissingAttendanceToday[] = [];
-            AVAILABLE_CLASSES.forEach(cls => {
-              (["ikhwan", "akhwat"] as const).forEach(gender => {
-                const expectedPrayers = getPrayersForDay(gender, new Date());
-                expectedPrayers.forEach(prayer => {
-                  const docId = `${todayStr}_${cls.id}_${gender}_${prayer}`;
-                  if (!presentRecords.has(docId)) {
-                    missingList.push({
-                      classId: cls.id,
-                      gender,
-                      prayer
-                    });
-                  }
+            assignedClasses.forEach(classId => {
+              const cls = AVAILABLE_CLASSES.find(c => c.id === classId);
+              if (cls) {
+                (["ikhwan", "akhwat"] as const).forEach(gender => {
+                  const expectedPrayers = getPrayersForDay(gender, new Date());
+                  expectedPrayers.forEach(prayer => {
+                    const docId = `${todayStr}_${cls.id}_${gender}_${prayer}`;
+                    if (!presentRecords.has(docId)) {
+                      missingList.push({
+                        classId: cls.id,
+                        gender,
+                        prayer
+                      });
+                    }
+                  });
                 });
-              });
+              }
             });
             setMissingToday(missingList);
           }
@@ -374,8 +427,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 2. ADMIN & SUPERVISOR SUMMARY STATS */}
-      {(role === "admin" || role === "supervisor") && (
+      {/* 2. ADMIN SUMMARY STATS */}
+      {role === "admin" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-3xl p-6 flex items-center gap-5">
             <div className="p-4 rounded-2xl bg-blue-50 text-blue-600">
@@ -404,6 +457,41 @@ export default function DashboardPage() {
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Pembina</p>
               <h3 className="text-2xl font-serif font-bold text-gray-800 mt-1">{totalSupervisors}</h3>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* 2. SUPERVISOR SUMMARY STATS */}
+      {role === "supervisor" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-3xl p-6 flex items-center gap-5">
+            <div className="p-4 rounded-2xl bg-blue-50 text-blue-600">
+              <Users size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Siswa Binaan</p>
+              <h3 className="text-2xl font-serif font-bold text-gray-800 mt-1">{totalStudents}</h3>
+            </div>
+          </Card>
+
+          <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-3xl p-6 flex items-center gap-5">
+            <div className="p-4 rounded-2xl bg-purple-50 text-purple-600">
+              <LayoutDashboard size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Kelas Binaan</p>
+              <h3 className="text-2xl font-serif font-bold text-gray-800 mt-1">{supervisorClassCount} Kelas</h3>
+            </div>
+          </Card>
+
+          <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-3xl p-6 flex items-center gap-5">
+            <div className="p-4 rounded-2xl bg-amber-50 text-amber-600">
+              <AlertTriangle size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Belum Absen Hari Ini</p>
+              <h3 className="text-2xl font-serif font-bold text-gray-800 mt-1">{missingToday.length} Jadwal</h3>
             </div>
           </Card>
         </div>
