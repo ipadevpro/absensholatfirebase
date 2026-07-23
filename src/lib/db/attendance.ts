@@ -4,11 +4,10 @@ import {
   getDoc,
   updateDoc,
   setDoc,
-  arrayUnion,
-  arrayRemove,
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { AttendanceStatus } from "@/types";
 
 const ATTENDANCE_COLLECTION = "attendance";
 
@@ -21,71 +20,39 @@ export function subscribeToAttendance(
   classId: string,
   gender: string,
   prayerType: string,
-  callback: (presentStudents: string[]) => void
+  callback: (statuses: Record<string, AttendanceStatus>) => void
 ): () => void {
   const docId = getAttendanceDocId(date, classId, gender, prayerType);
   const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
   
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
-      callback(docSnap.data().presentStudents || []);
+      const data = docSnap.data();
+      if (data.statuses) {
+        callback(data.statuses);
+      } else if (data.presentStudents) {
+        // Migration logic for old data
+        const statuses: Record<string, AttendanceStatus> = {};
+        data.presentStudents.forEach((id: string) => {
+          statuses[id] = "hadir";
+        });
+        callback(statuses);
+      } else {
+        callback({});
+      }
     } else {
-      callback([]);
+      callback({});
     }
   });
 }
 
-export async function getAttendance(
-  date: string,
-  classId: string,
-  gender: string,
-  prayerType: string
-): Promise<string[]> {
-  const docId = getAttendanceDocId(date, classId, gender, prayerType);
-  const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    return docSnap.data().presentStudents || [];
-  }
-  return [];
-}
-
-export async function markPresent(
+export async function updateStudentStatus(
   date: string,
   classId: string,
   gender: string,
   prayerType: string,
-  studentId: string
-): Promise<void> {
-  const docId = getAttendanceDocId(date, classId, gender, prayerType);
-  const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
-  const docSnap = await getDoc(docRef);
-
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    if (!data.presentStudents?.includes(studentId)) {
-      await updateDoc(docRef, {
-        presentStudents: arrayUnion(studentId),
-      });
-    }
-  } else {
-    // Use setDoc to create with specific ID
-    await setDoc(docRef, {
-      date,
-      classId,
-      gender,
-      prayerType,
-      presentStudents: [studentId],
-    });
-  }
-}
-
-export async function markAbsent(
-  date: string,
-  classId: string,
-  gender: string,
-  prayerType: string,
-  studentId: string
+  studentId: string,
+  status: AttendanceStatus
 ): Promise<void> {
   const docId = getAttendanceDocId(date, classId, gender, prayerType);
   const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
@@ -93,7 +60,19 @@ export async function markAbsent(
 
   if (docSnap.exists()) {
     await updateDoc(docRef, {
-      presentStudents: arrayRemove(studentId),
+      [`statuses.${studentId}`]: status,
+      updatedAt: new Date(),
+    });
+  } else {
+    await setDoc(docRef, {
+      date,
+      classId,
+      gender,
+      prayerType,
+      statuses: {
+        [studentId]: status,
+      },
+      updatedAt: new Date(),
     });
   }
 }
