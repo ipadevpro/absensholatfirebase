@@ -102,21 +102,17 @@ export default function DashboardPage() {
       setChecking(true);
       try {
         if (role === "admin") {
-          // 1. Fetch overall counts
-          const studentsSnap = await getDocs(collection(db, "students"));
+          const [studentsSnap, coordsSnap, supervisorsSnap, startDateStr] = await Promise.all([
+            getDocs(collection(db, "students")),
+            getDocs(collection(db, "coordinators")),
+            getDocs(collection(db, "supervisors")),
+            getAttendanceStartDate(),
+          ]);
           setTotalStudents(studentsSnap.size);
-
-          const coordsSnap = await getDocs(collection(db, "coordinators"));
           setTotalCoordinators(coordsSnap.size);
-
-          const supervisorsSnap = await getDocs(collection(db, "supervisors"));
           setTotalSupervisors(supervisorsSnap.size);
-
-          // Fetch attendance start date setting
-          const startDateStr = await getAttendanceStartDate();
           setAttendanceStartDate(startDateStr || "");
 
-          // 2. Fetch Recent Activities (order by updatedAt desc)
           try {
             const q = query(
               collection(db, "attendance"),
@@ -124,13 +120,8 @@ export default function DashboardPage() {
               limit(5)
             );
             const activitiesSnap = await getDocs(q);
-            const activities = activitiesSnap.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            })) as RecentActivity[];
-            setRecentActivities(activities);
+            setRecentActivities(activitiesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as RecentActivity[]);
           } catch (activityError) {
-            // Fallback if index is building or not present, query without orderBy
             console.warn("Could not load recent activities with orderBy. Using fallback.", activityError);
             const fallbackQuery = query(collection(db, "attendance"), limit(10));
             const activitiesSnap = await getDocs(fallbackQuery);
@@ -321,10 +312,18 @@ export default function DashboardPage() {
 
   if (checking) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-          <p className="text-sm font-medium text-emerald-800 animate-pulse">Memuat Dashboard...</p>
+      <div className="space-y-8 max-w-5xl mx-auto pb-12 min-h-full">
+        <div className="rounded-[2.5rem] bg-emerald-100/50 p-8 animate-pulse h-52" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-3xl bg-white/70 p-6 h-28 animate-pulse" />
+          ))}
+        </div>
+        <div className="rounded-[2rem] bg-white/70 p-6 h-48 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-[2rem] bg-white/60 p-6 h-24 animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -545,45 +544,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {role === "admin" && (
-        <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
-          <CardHeader className="px-2 pt-2 pb-4">
-            <CardTitle className="text-xl font-serif text-gray-900">Pengaturan Tanggal Mulai Absensi</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Atur tanggal mulai kalkulasi absen. Jadwal sebelum tanggal ini akan diabaikan pada peringatan koordinator.
-            </p>
-          </CardHeader>
-          <CardContent className="px-2 pb-2 flex flex-col sm:flex-row gap-4 items-end">
-            <div className="space-y-2 flex-1 w-full">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Mulai</label>
-              <input
-                type="date"
-                value={attendanceStartDate}
-                onChange={(e) => setAttendanceStartDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-emerald-100 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-              />
-            </div>
-            <Button
-              onClick={async () => {
-                setIsSavingSettings(true);
-                try {
-                  await updateAttendanceStartDate(attendanceStartDate);
-                  toast.success("Tanggal mulai absensi berhasil diperbarui");
-                } catch (err: any) {
-                  toast.error("Gagal memperbarui pengaturan: " + err.message);
-                } finally {
-                  setIsSavingSettings(false);
-                }
-              }}
-              disabled={isSavingSettings}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-10 font-medium shadow-md shadow-emerald-100 w-full sm:w-auto"
-            >
-              {isSavingSettings ? "Menyimpan..." : "Simpan"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* 4. RECENT ACTIVITY (FOR ADMINS) */}
       {role === "admin" && (
         <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
@@ -625,45 +585,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {role === "admin" && (
-        <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
-          <CardHeader className="px-2 pt-2 pb-4">
-            <CardTitle className="text-xl font-serif text-gray-900">Pengaturan Tanggal Mulai Absensi</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Atur tanggal mulai kalkulasi absen. Jadwal sebelum tanggal ini akan diabaikan pada peringatan koordinator.
-            </p>
-          </CardHeader>
-          <CardContent className="px-2 pb-2 flex flex-col sm:flex-row gap-4 items-end">
-            <div className="space-y-2 flex-1 w-full">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Mulai</label>
-              <input
-                type="date"
-                value={attendanceStartDate}
-                onChange={(e) => setAttendanceStartDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-emerald-100 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-              />
-            </div>
-            <Button
-              onClick={async () => {
-                setIsSavingSettings(true);
-                try {
-                  await updateAttendanceStartDate(attendanceStartDate);
-                  toast.success("Tanggal mulai absensi berhasil diperbarui");
-                } catch (err: any) {
-                  toast.error("Gagal memperbarui pengaturan: " + err.message);
-                } finally {
-                  setIsSavingSettings(false);
-                }
-              }}
-              disabled={isSavingSettings}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-10 font-medium shadow-md shadow-emerald-100 w-full sm:w-auto"
-            >
-              {isSavingSettings ? "Menyimpan..." : "Simpan"}
-            </Button>
           </CardContent>
         </Card>
       )}
