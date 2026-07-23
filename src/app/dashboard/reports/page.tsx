@@ -62,6 +62,12 @@ export default function ReportsPage() {
           const adminDoc = await getDoc(doc(db, "admins", user.uid));
           if (adminDoc.exists()) {
             setIsAdmin(true);
+          } else {
+            // 3. Check supervisor
+            const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
+            if (supervisorDoc.exists()) {
+              setIsAdmin(true);
+            }
           }
         }
       } catch (e) {
