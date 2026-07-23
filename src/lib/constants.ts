@@ -1,8 +1,33 @@
 export const AVAILABLE_CLASSES = [
+  // Kelas 7
   { id: "7a", name: "7-A" },
   { id: "7b", name: "7-B" },
+  { id: "7c", name: "7-C" },
+  { id: "7d", name: "7-D" },
+  { id: "7e", name: "7-E" },
+  { id: "7f", name: "7-F" },
+  { id: "7g", name: "7-G" },
+  { id: "7h", name: "7-H" },
+  { id: "7i", name: "7-I" },
+  { id: "7j", name: "7-J" },
+  // Kelas 8
   { id: "8a", name: "8-A" },
   { id: "8b", name: "8-B" },
+  { id: "8c", name: "8-C" },
+  { id: "8d", name: "8-D" },
+  { id: "8e", name: "8-E" },
+  { id: "8f", name: "8-F" },
+  { id: "8g", name: "8-G" },
+  { id: "8h", name: "8-H" },
+  { id: "8i", name: "8-I" },
+  { id: "8j", name: "8-J" },
+  { id: "8k", name: "8-K" },
+  // Kelas 9
   { id: "9a", name: "9-A" },
   { id: "9b", name: "9-B" },
+  { id: "9c", name: "9-C" },
+  { id: "9d", name: "9-D" },
+  { id: "9e", name: "9-E" },
+  { id: "9f", name: "9-F" },
+  { id: "9g", name: "9-G" },
 ];
