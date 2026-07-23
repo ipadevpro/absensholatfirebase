@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Supervisor } from "@/types";
-import { addSupervisor, deleteSupervisor } from "@/lib/db/supervisors";
+import { deleteSupervisor } from "@/lib/db/supervisors";
+import { createSupervisorAccount } from "@/app/actions/supervisor";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, X, AlertCircle } from "lucide-react";
@@ -18,19 +19,25 @@ export default function SupervisorsList({ initialSupervisors }: SupervisorsListP
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = async (data: Omit<Supervisor, "id" | "createdAt">) => {
+  const handleAdd = async (data: Parameters<typeof SupervisorForm>[0]["onSubmit"] extends (data: infer T) => any ? T : never) => {
     setIsLoading(true);
     setError(null);
     try {
-      const id = await addSupervisor(data);
-      const newSup: Supervisor = {
-        ...data,
-        id,
-        createdAt: new Date()
-      };
-      setSupervisors([...supervisors, newSup]);
-      setIsFormOpen(false);
-      return true;
+      const result = await createSupervisorAccount(data);
+      if (result.success && result.uid) {
+        const newSup: Supervisor = {
+          name: data.name,
+          uid: result.uid,
+          id: result.uid,
+          createdAt: new Date()
+        };
+        setSupervisors([...supervisors, newSup]);
+        setIsFormOpen(false);
+        return true;
+      } else {
+        setError(result.error || "Gagal membuat akun pembina");
+        return false;
+      }
     } catch (err) {
       console.error("Failed to add supervisor", err);
       setError("Gagal menambahkan pembina. Silakan coba lagi.");

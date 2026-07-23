@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Supervisor } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,23 +8,29 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { AlertCircle } from "lucide-react";
 
 interface SupervisorFormProps {
-  onSubmit: (data: Omit<Supervisor, "id" | "createdAt">) => Promise<boolean | void>;
+  onSubmit: (data: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<boolean | void>;
   isLoading?: boolean;
   error?: string | null;
 }
 
 export default function SupervisorForm({ onSubmit, isLoading = false, error }: SupervisorFormProps) {
   const [name, setName] = useState("");
-  const [uid, setUid] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !uid) return;
+    if (!name || !email || !password) return;
 
-    const success = await onSubmit({ name, uid });
+    const success = await onSubmit({ name, email, password });
     if (success !== false) {
       setName("");
-      setUid("");
+      setEmail("");
+      setPassword("");
     }
   };
 
@@ -54,17 +59,28 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error }: S
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="uid">User ID (UID)</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="uid"
-              placeholder="Firebase Auth UID"
-              value={uid}
-              onChange={(e) => setUid(e.target.value)}
+              id="email"
+              type="email"
+              placeholder="email@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Salin UID dari dashboard Firebase Authentication.
-            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Minimal 6 karakter"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
           </div>
         </CardContent>
         <CardFooter>
