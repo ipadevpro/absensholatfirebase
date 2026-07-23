@@ -7,6 +7,7 @@ import {
   doc,
   query,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Student } from "@/types";
@@ -38,4 +39,12 @@ export async function updateStudent(id: string, data: Partial<Student>): Promise
 
 export async function deleteStudent(id: string): Promise<void> {
   await deleteDoc(doc(db, STUDENTS_COLLECTION, id));
+}
+
+export async function deleteStudents(ids: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  ids.forEach((id) => {
+    batch.delete(doc(db, STUDENTS_COLLECTION, id));
+  });
+  await batch.commit();
 }
