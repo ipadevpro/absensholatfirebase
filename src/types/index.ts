@@ -8,6 +8,7 @@ export interface Supervisor {
   id: string;
   uid: string;
   name: string;
+  classes: string[];
   createdAt: Date;
 }
 

@@ -6,6 +6,7 @@ export async function createSupervisorAccount(data: {
   name: string;
   email: string;
   password: string;
+  classes: string[];
 }) {
   try {
     // 1. Create user in Firebase Auth
@@ -19,6 +20,7 @@ export async function createSupervisorAccount(data: {
     await adminDb.collection('supervisors').doc(userRecord.uid).set({
       name: data.name,
       uid: userRecord.uid,
+      classes: data.classes,
       createdAt: new Date(),
     });
 

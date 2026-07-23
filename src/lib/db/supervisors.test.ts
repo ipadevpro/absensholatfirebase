@@ -34,7 +34,7 @@ describe('Supervisor DB helpers', () => {
   });
 
   it('should add a supervisor', async () => {
-    const uid = await addSupervisor({ name: 'Supervisor B', uid: 'uid-b' });
+    const uid = await addSupervisor({ name: 'Supervisor B', uid: 'uid-b', classes: ['7a'] });
     expect(uid).toBe('uid-b');
     expect(setDoc).toHaveBeenCalled();
   });
