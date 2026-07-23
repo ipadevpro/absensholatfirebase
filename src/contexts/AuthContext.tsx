@@ -10,6 +10,7 @@ export type UserRole = "admin" | "coordinator" | "supervisor" | null;
 interface AuthContextType {
   user: User | null;
   role: UserRole;
+  profile: any | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,30 +31,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Fetch role
+        // Fetch role and profile
         try {
           const adminDoc = await getDoc(doc(db, "admins", user.uid));
           if (adminDoc.exists()) {
             setRole("admin");
+            setProfile(adminDoc.data());
           } else {
             const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
             if (supervisorDoc.exists()) {
               setRole("supervisor");
+              setProfile(supervisorDoc.data());
             } else {
               const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
               if (coordDoc.exists()) {
                 setRole("coordinator");
+                setProfile(coordDoc.data());
               } else {
                 setRole(null);
+                setProfile(null);
               }
             }
           }
         } catch (e) {
-          console.error("Error fetching role:", e);
+          console.error("Error fetching role and profile:", e);
           setRole(null);
+          setProfile(null);
         }
       } else {
         setRole(null);
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -82,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = () => setError(null);
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, error, login, logout, clearError }}>
+    <AuthContext.Provider value={{ user, role, profile, loading, error, login, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );
