@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, X, AlertCircle } from "lucide-react";
 import SupervisorForm from "./SupervisorForm";
+import { AVAILABLE_CLASSES } from "@/lib/constants";
 
 interface SupervisorsListProps {
   initialSupervisors: Supervisor[];
@@ -91,6 +92,7 @@ export default function SupervisorsList({ initialSupervisors }: SupervisorsListP
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
+              <TableHead>Kelas Binaan</TableHead>
               <TableHead>UID</TableHead>
               <TableHead className="w-[100px] text-right">Aksi</TableHead>
             </TableRow>
@@ -98,7 +100,7 @@ export default function SupervisorsList({ initialSupervisors }: SupervisorsListP
           <TableBody>
             {supervisors.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
                   Belum ada data pembina.
                 </TableCell>
               </TableRow>
@@ -106,6 +108,13 @@ export default function SupervisorsList({ initialSupervisors }: SupervisorsListP
               supervisors.map((supervisor) => (
                 <TableRow key={supervisor.id}>
                   <TableCell className="font-medium">{supervisor.name}</TableCell>
+                  <TableCell className="max-w-[250px] truncate">
+                    {supervisor.classes && supervisor.classes.length > 0
+                      ? supervisor.classes
+                          .map((cId) => AVAILABLE_CLASSES.find((c) => c.id === cId)?.name || cId)
+                          .join(", ")
+                      : "Belum ada kelas"}
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">{supervisor.uid}</TableCell>
                   <TableCell className="text-right">
                     <Button

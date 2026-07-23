@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AVAILABLE_CLASSES } from "@/lib/constants";
 
 interface SupervisorFormProps {
   onSubmit: (data: {
     name: string;
     email: string;
     password: string;
+    classes: string[];
   }) => Promise<boolean | void>;
   isLoading?: boolean;
   error?: string | null;
@@ -21,16 +24,23 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error }: S
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) return;
 
-    const success = await onSubmit({ name, email, password });
+    const success = await onSubmit({ 
+      name, 
+      email, 
+      password, 
+      classes: selectedClasses 
+    });
     if (success !== false) {
       setName("");
       setEmail("");
       setPassword("");
+      setSelectedClasses([]);
     }
   };
 
@@ -81,6 +91,31 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error }: S
               required
               minLength={6}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Kelas Binaan</Label>
+            <div className="grid grid-cols-2 gap-3 p-3 border border-emerald-100 rounded-xl bg-gray-50/50">
+              {AVAILABLE_CLASSES.map((cls) => (
+                <div key={cls.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`class-${cls.id}`}
+                    checked={selectedClasses.includes(cls.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedClasses([...selectedClasses, cls.id]);
+                      } else {
+                        setSelectedClasses(selectedClasses.filter((c) => c !== cls.id));
+                      }
+                    }}
+                    className="border-emerald-200 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md"
+                  />
+                  <label htmlFor={`class-${cls.id}`} className="text-sm font-medium text-gray-750 cursor-pointer select-none">
+                    {cls.name}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
         <CardFooter>
