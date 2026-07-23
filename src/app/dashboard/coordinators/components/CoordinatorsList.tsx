@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Coordinator } from "@/types";
-import { addCoordinator, deleteCoordinator } from "@/lib/db/coordinators";
+import { deleteCoordinator } from "@/lib/db/coordinators";
+import { createCoordinatorAccount } from "@/app/actions/coordinator";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus, X, AlertCircle } from "lucide-react";
@@ -18,22 +19,30 @@ export default function CoordinatorsList({ initialCoordinators }: CoordinatorsLi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = async (data: Omit<Coordinator, "id" | "createdAt">) => {
+  const handleAdd = async (data: Parameters<typeof CoordinatorForm>[0]["onSubmit"] extends (data: infer T) => any ? T : never) => {
     setIsLoading(true);
     setError(null);
     try {
-      const id = await addCoordinator(data);
-      const newCoord: Coordinator = {
-        ...data,
-        id,
-        createdAt: new Date()
-      };
-      setCoordinators([...coordinators, newCoord]);
-      setIsFormOpen(false);
-      return true;
-    } catch (error) {
-      console.error("Failed to add coordinator", error);
-      setError("Failed to add coordinator. Please try again.");
+      const result = await createCoordinatorAccount(data);
+      if (result.success && result.uid) {
+        const newCoord: Coordinator = {
+          name: data.name,
+          uid: result.uid,
+          classId: data.classId,
+          gender: data.gender,
+          id: result.uid,
+          createdAt: new Date()
+        };
+        setCoordinators([...coordinators, newCoord]);
+        setIsFormOpen(false);
+        return true;
+      } else {
+        setError(result.error || "Gagal membuat akun koordinator");
+        return false;
+      }
+    } catch (err: any) {
+      console.error("Failed to add coordinator", err);
+      setError("Gagal membuat akun koordinator. Silakan coba lagi.");
       return false;
     } finally {
       setIsLoading(false);
