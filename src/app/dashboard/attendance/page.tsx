@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { format, subDays, isWeekend } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Loader2, CalendarClock } from "lucide-react";
+import { getAttendanceStartDate } from "@/lib/db/settings";
 import { doc, getDoc } from "firebase/firestore";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -54,6 +55,7 @@ function AttendanceContent() {
           setIsAdmin(false);
 
           // Check last 5 school days for missing attendance
+          const startDateStr = await getAttendanceStartDate();
           const missing: { date: string; prayer: PrayerType }[] = [];
           const today = new Date();
           
@@ -62,6 +64,8 @@ function AttendanceContent() {
             if (isWeekend(checkDate)) continue;
 
             const dateStr = format(checkDate, "yyyy-MM-dd");
+            if (startDateStr && dateStr < startDateStr) continue;
+
             const expectedPrayers = getPrayersForDay(coordinatorData.gender, checkDate);
 
             for (const prayer of expectedPrayers) {
