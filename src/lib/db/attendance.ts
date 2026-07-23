@@ -76,3 +76,23 @@ export async function updateStudentStatus(
     });
   }
 }
+
+export async function saveAttendanceRecord(
+  date: string,
+  classId: string,
+  gender: string,
+  prayerType: string,
+  statuses: Record<string, AttendanceStatus>
+): Promise<void> {
+  const docId = getAttendanceDocId(date, classId, gender, prayerType);
+  const docRef = doc(db, ATTENDANCE_COLLECTION, docId);
+  
+  await setDoc(docRef, {
+    date,
+    classId,
+    gender,
+    prayerType,
+    statuses,
+    updatedAt: new Date(),
+  });
+}
