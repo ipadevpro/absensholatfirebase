@@ -2,7 +2,14 @@ export type Gender = "ikhwan" | "akhwat";
 
 export type PrayerType = "zuhur" | "ashar" | "jumat";
 
-export type UserRole = "guru" | "koordinator";
+export type UserRole = "admin" | "coordinator" | "supervisor" | null;
+
+export interface Supervisor {
+  id: string;
+  uid: string;
+  name: string;
+  createdAt: Date;
+}
 
 export interface Student {
   id: string;
@@ -27,13 +34,15 @@ export interface Class {
   grade: number;
 }
 
+export type AttendanceStatus = "hadir" | "sakit" | "izin" | "alpa" | "haid";
+
 export interface AttendanceRecord {
   id: string;
   date: string;
   classId: string;
   gender: Gender;
   prayerType: PrayerType;
-  presentStudents: string[];
+  statuses: Record<string, AttendanceStatus>;
 }
 
 export interface AttendanceStats {
