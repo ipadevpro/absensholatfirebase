@@ -1,20 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   ClipboardCheck, 
   BarChart3, 
   Users,
-  UserCog
+  UserCog,
+  LogOut
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function MobileNav() {
   const pathname = usePathname();
-  const { role } = useAuth();
+  const router = useRouter();
+  const { role, logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (window.confirm("Apakah Anda yakin ingin keluar?")) {
+      await logout();
+      router.push("/login");
+    }
+  };
 
   const allMenuItems = [
     { href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "coordinator", "supervisor"] },
@@ -47,6 +56,13 @@ export function MobileNav() {
           </Link>
         );
       })}
+      <button
+        onClick={handleLogout}
+        className="relative p-3 rounded-2xl transition-all duration-300 text-red-500 hover:bg-red-50"
+        title="Keluar"
+      >
+        <LogOut size={24} strokeWidth={2} />
+      </button>
     </nav>
   );
 }
