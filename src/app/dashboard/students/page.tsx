@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Student } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllStudents, addStudent, updateStudent, deleteStudent, deleteStudents } from "@/lib/db/students";
+import { getStudentsByClass, addStudent, updateStudent, deleteStudent, deleteStudents } from "@/lib/db/students";
 import { StudentList } from "./components/StudentList";
 import { StudentForm } from "./components/StudentForm";
 import { DelegationDialog } from "./components/DelegationDialog";
@@ -12,6 +12,7 @@ import { BulkStudentDialog } from "./components/BulkStudentDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -38,7 +39,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   X,
-  Trash2
+  Trash2,
+  GraduationCap,
+  ArrowLeft
 } from "lucide-react";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -56,7 +59,8 @@ export default function StudentsPage() {
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentIdsToDelete, setStudentIdsToDelete] = useState<string[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,15 +69,16 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    if (role === "admin") {
+    if (role === "admin" && selectedClassId) {
       loadStudents();
     }
-  }, [role]);
+  }, [role, selectedClassId]);
 
   const loadStudents = async () => {
+    if (!selectedClassId) return;
     setIsLoading(true);
     try {
-      const data = await getAllStudents();
+      const data = await getStudentsByClass(selectedClassId);
       setStudents(data);
     } catch (error: any) {
       toast.error("Gagal memuat data siswa: " + error.message);
@@ -86,11 +91,11 @@ export default function StudentsPage() {
   const filteredStudents = useMemo(() => {
     return students.filter((s) => {
       const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesClass = classFilter === "all" || s.classId === classFilter;
+      const matchesClass = !selectedClassId || s.classId === selectedClassId;
       const matchesGender = genderFilter === "all" || s.gender === genderFilter;
       return matchesSearch && matchesClass && matchesGender;
     });
-  }, [students, searchQuery, classFilter, genderFilter]);
+  }, [students, searchQuery, selectedClassId, genderFilter]);
 
   const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
   const paginatedStudents = useMemo(() => {
@@ -98,11 +103,22 @@ export default function StudentsPage() {
     return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredStudents, currentPage]);
 
+  const classesByGrade = useMemo(() => {
+    const groups: Record<number, typeof AVAILABLE_CLASSES> = { 7: [], 8: [], 9: [] };
+    AVAILABLE_CLASSES.forEach(cls => {
+      const grade = parseInt(cls.id.charAt(0));
+      if (groups[grade]) {
+        groups[grade].push(cls);
+      }
+    });
+    return groups;
+  }, []);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
     setSelectedStudentIds([]);
-  }, [searchQuery, classFilter, genderFilter]);
+  }, [searchQuery, selectedClassId, genderFilter]);
 
   // Reset selection when page changes
   useEffect(() => {
@@ -184,18 +200,66 @@ export default function StudentsPage() {
 
   const resetFilters = () => {
     setSearchQuery("");
-    setClassFilter("all");
     setGenderFilter("all");
   };
+
+  if (selectedClassId === null) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto pb-20 md:pb-8">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-emerald-900 tracking-tight">Manajemen Siswa</h1>
+          <p className="text-sm text-muted-foreground mt-1">Pilih kelas di bawah untuk mengelola data siswa</p>
+        </div>
+
+        {[7, 8, 9].map((grade) => (
+          <div key={grade} className="space-y-4">
+            <h2 className="text-xl font-serif font-bold text-emerald-800 border-b border-emerald-100 pb-2">
+              Kelas {grade}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {classesByGrade[grade]?.map((cls) => (
+                <div
+                  key={cls.id}
+                  onClick={() => setSelectedClassId(cls.id)}
+                  className="group p-6 bg-white/80 backdrop-blur-sm border border-emerald-50 rounded-[2rem] hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-200 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center gap-3 animate-in fade-in zoom-in-95 duration-200"
+                >
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:scale-110 transition-transform shadow-inner">
+                    <GraduationCap size={24} />
+                  </div>
+                  <span className="font-bold text-lg text-emerald-900 group-hover:text-emerald-700 transition-colors">
+                    Kelas {cls.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const activeClass = AVAILABLE_CLASSES.find(c => c.id === selectedClassId);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-20 md:pb-8">
       {/* Header Section */}
       <div className="flex flex-col gap-4">
+        <div>
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedClassId(null)}
+            className="rounded-xl border border-emerald-100 hover:bg-emerald-50 text-emerald-700 mb-2 h-9 px-3"
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Kembali ke Daftar Kelas
+          </Button>
+        </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-emerald-900 tracking-tight">Manajemen Siswa</h1>
-            <p className="text-sm text-muted-foreground mt-1">Kelola data seluruh siswa SMP PGII 1 Bandung</p>
+            <h1 className="text-3xl font-serif font-bold text-emerald-900 tracking-tight">
+              Siswa Kelas {activeClass?.name || selectedClassId.toUpperCase()}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Kelola data siswa kelas {activeClass?.name}</p>
           </div>
           {!showForm && (
             <div className="flex gap-2">
@@ -220,7 +284,7 @@ export default function StudentsPage() {
 
         {/* Filters and Search Bar */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white/60 backdrop-blur-md p-4 rounded-3xl border border-emerald-50 shadow-sm">
-          <div className="relative md:col-span-2">
+          <div className="relative md:col-span-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600/40" />
             <Input
               placeholder="Cari nama siswa..."
@@ -229,21 +293,6 @@ export default function StudentsPage() {
               className="pl-10 rounded-2xl bg-white border-emerald-50 focus-visible:ring-emerald-500"
             />
           </div>
-          
-          <Select value={classFilter} onValueChange={setClassFilter}>
-            <SelectTrigger className="rounded-2xl border-emerald-50 bg-white">
-              <div className="flex items-center gap-2">
-                <Filter size={14} className="text-emerald-600/40" />
-                <SelectValue placeholder="Pilih Kelas" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl border-emerald-50">
-              <SelectItem value="all">Semua Kelas</SelectItem>
-              {AVAILABLE_CLASSES.map((cls) => (
-                <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select value={genderFilter} onValueChange={setGenderFilter}>
             <SelectTrigger className="rounded-2xl border-emerald-50 bg-white">
@@ -258,19 +307,13 @@ export default function StudentsPage() {
         </div>
 
         {/* Active Filter Indicators */}
-        {(searchQuery || classFilter !== "all" || genderFilter !== "all") && (
+        {(searchQuery || genderFilter !== "all") && (
           <div className="flex flex-wrap items-center gap-2 px-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mr-2">Filter Aktif:</p>
             {searchQuery && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
                 "{searchQuery}"
                 <X size={12} className="cursor-pointer" onClick={() => setSearchQuery("")} />
-              </span>
-            )}
-            {classFilter !== "all" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
-                Kelas: {AVAILABLE_CLASSES.find(c => c.id === classFilter)?.name}
-                <X size={12} className="cursor-pointer" onClick={() => setClassFilter("all")} />
               </span>
             )}
             {genderFilter !== "all" && (
@@ -293,6 +336,7 @@ export default function StudentsPage() {
         <div className="staggered-reveal">
           <StudentForm
             student={editingStudent || undefined}
+            defaultClassId={selectedClassId || undefined}
             onSubmit={editingStudent ? handleUpdate : handleAdd}
             onCancel={() => {
               setShowForm(false);
@@ -450,6 +494,7 @@ export default function StudentsPage() {
         onSuccess={() => {
           loadStudents();
         }}
+        defaultClassId={selectedClassId || undefined}
       />
 
       <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>

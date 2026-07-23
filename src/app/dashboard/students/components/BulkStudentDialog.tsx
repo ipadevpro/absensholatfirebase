@@ -44,17 +44,19 @@ interface BulkStudentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  defaultClassId?: string;
 }
 
 export function BulkStudentDialog({
   open,
   onOpenChange,
   onSuccess,
+  defaultClassId,
 }: BulkStudentDialogProps) {
   const [mode, setRole] = useState<"table" | "paste">("table");
   const [pasteContent, setPasteContent] = useState("");
   const [rows, setRows] = useState<BulkStudentRow[]>([
-    { id: Math.random().toString(), name: "", classId: "", gender: "ikhwan" },
+    { id: Math.random().toString(), name: "", classId: defaultClassId || "", gender: "ikhwan" },
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function BulkStudentDialog({
   const addRow = () => {
     setRows([
       ...rows,
-      { id: Math.random().toString(), name: "", classId: "", gender: "ikhwan" },
+      { id: Math.random().toString(), name: "", classId: defaultClassId || "", gender: "ikhwan" },
     ]);
   };
 
@@ -105,7 +107,7 @@ export function BulkStudentDialog({
       return {
         id: Math.random().toString(),
         name,
-        classId: classMatch?.id || "",
+        classId: classMatch?.id || defaultClassId || "",
         gender
       };
     });

@@ -11,14 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StudentFormProps {
   student?: Student;
+  defaultClassId?: string;
   onSubmit: (data: Omit<Student, "id" | "createdAt">) => void;
   onCancel: () => void;
 }
 
-export function StudentForm({ student, onSubmit, onCancel }: StudentFormProps) {
+export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: StudentFormProps) {
   const [name, setName] = useState(student?.name || "");
   const [gender, setGender] = useState<Gender>(student?.gender || "ikhwan");
-  const [classId, setClassId] = useState(student?.classId || "");
+  const [classId, setClassId] = useState(student?.classId || defaultClassId || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
