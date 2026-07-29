@@ -326,7 +326,7 @@ export default function DashboardPage() {
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-md border border-white/20 mb-2">
             <MoonStar size={14} className="text-secondary" />
-            <span>Assalamu'alaikum</span>
+            <span>Assalamu&apos;alaikum</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-serif font-bold leading-tight">
             Selamat Datang, <br />
@@ -339,7 +339,7 @@ export default function DashboardPage() {
             </span>
           </h1>
           <p className="text-emerald-100 max-w-md text-sm md:text-base font-light leading-relaxed">
-            "Sesungguhnya sholat itu mencegah dari (perbuatan) keji dan mungkar." <br />
+            &quot;Sesungguhnya sholat itu mencegah dari (perbuatan) keji dan mungkar.&quot; <br />
             <span className="text-xs opacity-60">— QS. Al-Ankabut: 45</span>
           </p>
         </div>
@@ -530,6 +530,46 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5. ATTENDANCE START DATE SETTING (FOR ADMINS) */}
+      {role === "admin" && (
+        <Card className="border-none shadow-sm bg-white/70 backdrop-blur-md rounded-[2.5rem] p-6">
+          <CardHeader className="px-2 pt-2 pb-4">
+            <CardTitle className="text-xl font-serif text-gray-900">Pengaturan Tanggal Mulai Absensi</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Atur tanggal mulai kalkulasi absen. Jadwal sebelum tanggal ini akan diabaikan pada peringatan koordinator.
+            </p>
+          </CardHeader>
+          <CardContent className="px-2 pb-2 flex flex-col sm:flex-row gap-4 items-end">
+            <div className="space-y-2 flex-1 w-full">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Mulai</label>
+              <input
+                type="date"
+                value={attendanceStartDate}
+                onChange={(e) => setAttendanceStartDate(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-emerald-100 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                setIsSavingSettings(true);
+                try {
+                  await updateAttendanceStartDate(attendanceStartDate);
+                  toast.success("Tanggal mulai absensi berhasil diperbarui");
+                } catch (err: any) {
+                  toast.error("Gagal memperbarui pengaturan: " + err.message);
+                } finally {
+                  setIsSavingSettings(false);
+                }
+              }}
+              disabled={isSavingSettings}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 h-10 font-medium shadow-md shadow-emerald-100 w-full sm:w-auto"
+            >
+              {isSavingSettings ? "Menyimpan..." : "Simpan"}
+            </Button>
           </CardContent>
         </Card>
       )}

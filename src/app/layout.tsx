@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import Script from "next/script";
 
 const amiri = Amiri({ 
   subsets: ["arabic", "latin"], 
@@ -35,71 +36,67 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${amiri.variable} ${jakarta.variable}`}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                function recover() {
-                  console.warn('Next.js asset load failure. Recovering...');
-                  
-                  // Prevent infinite reloading loops by using sessionStorage throttle
-                  try {
-                    var lastReload = sessionStorage.getItem('last-recovery-reload');
-                    var now = Date.now();
-                    if (lastReload && (now - parseInt(lastReload) < 10000)) {
-                      console.error('Recovery reload throttled to prevent infinite loop.');
-                      return;
-                    }
-                    sessionStorage.setItem('last-recovery-reload', now.toString());
-                  } catch (err) {
-                    console.error('sessionStorage access failed:', err);
+      <body className="font-sans antialiased bg-[#fdfcf0] text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
+        <Script id="recovery-script" strategy="beforeInteractive">
+          {`
+            (function() {
+              function recover() {
+                console.warn('Next.js asset load failure. Recovering...');
+                
+                // Prevent infinite reloading loops by using sessionStorage throttle
+                try {
+                  var lastReload = sessionStorage.getItem('last-recovery-reload');
+                  var now = Date.now();
+                  if (lastReload && (now - parseInt(lastReload) < 10000)) {
+                    console.error('Recovery reload throttled to prevent infinite loop.');
+                    return;
                   }
+                  sessionStorage.setItem('last-recovery-reload', now.toString());
+                } catch (err) {
+                  console.error('sessionStorage access failed:', err);
+                }
 
-                  if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(function(regs) {
-                      var promises = regs.map(function(r) { return r.unregister(); });
-                      Promise.all(promises).then(function() {
-                        clearCachesAndReload();
-                      });
-                    }).catch(clearCachesAndReload);
-                  } else {
-                    clearCachesAndReload();
-                  }
-                }
-                function clearCachesAndReload() {
-                  if ('caches' in window) {
-                    caches.keys().then(function(keys) {
-                      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-                    }).then(function() {
-                      window.location.reload();
-                    }).catch(function() {
-                      window.location.reload();
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    var promises = regs.map(function(r) { return r.unregister(); });
+                    Promise.all(promises).then(function() {
+                      clearCachesAndReload();
                     });
-                  } else {
-                    window.location.reload();
-                  }
+                  }).catch(clearCachesAndReload);
+                } else {
+                  clearCachesAndReload();
                 }
-                window.addEventListener('error', function(e) {
-                  var t = e.target;
-                  if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
-                    var url = t.src || t.href;
-                    if (url && url.indexOf('/_next/') !== -1) {
-                      recover();
-                    }
-                  }
-                }, true);
-                window.addEventListener('unhandledrejection', function(e) {
-                  if (e.reason && (e.reason.message || '').indexOf('Failed to load chunk') !== -1) {
+              }
+              function clearCachesAndReload() {
+                if ('caches' in window) {
+                  caches.keys().then(function(keys) {
+                    return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                  }).then(function() {
+                    window.location.reload();
+                  }).catch(function() {
+                    window.location.reload();
+                  });
+                } else {
+                  window.location.reload();
+                }
+              }
+              window.addEventListener('error', function(e) {
+                var t = e.target;
+                if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+                  var url = t.src || t.href;
+                  if (url && url.indexOf('/_next/') !== -1) {
                     recover();
                   }
-                });
-              })();
-            `
-          }}
-        />
-      </head>
-      <body className="font-sans antialiased bg-[#fdfcf0] text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
+                }
+              }, true);
+              window.addEventListener('unhandledrejection', function(e) {
+                if (e.reason && (e.reason.message || '').indexOf('Failed to load chunk') !== -1) {
+                  recover();
+                }
+              });
+            })();
+          `}
+        </Script>
         <AuthProvider>
           {children}
           <Toaster position="top-center" expand={false} richColors />
