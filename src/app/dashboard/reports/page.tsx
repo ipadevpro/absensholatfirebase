@@ -93,8 +93,8 @@ export default function ReportsPage() {
       "Nama Siswa": s.studentName,
       "Jumlah Hadir": s.attended,
       "Total Sholat": s.totalPrayers,
-      "Persentase": `${s.percentage}%`,
-      "Nilai": getGrade(s.percentage)
+      "Nilai": s.percentage,
+      "Grade": getGrade(s.percentage)
     }));
     
     const className = AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId;
