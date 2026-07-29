@@ -1,4 +1,4 @@
-const CACHE_NAME = "absen-sholat-v2";
+const CACHE_NAME = "absen-sholat-v3";
 const ASSETS_TO_CACHE = [
   "/manifest.json",
   "/icon-192.png",
@@ -11,6 +11,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+  self.skipWaiting(); // Force the waiting service worker to become the active service worker
 });
 
 self.addEventListener("fetch", (event) => {
@@ -39,10 +40,12 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log("Deleting old cache:", cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
+  self.clients.claim(); // Become the active controller for all clients immediately
 });
