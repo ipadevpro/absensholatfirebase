@@ -70,7 +70,7 @@ export function AttendanceStats({ stats }: AttendanceStatsProps) {
                 <TableHead className="font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Nama Siswa</TableHead>
                 <TableHead className="text-center font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Hadir</TableHead>
                 <TableHead className="text-center font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Target</TableHead>
-                <TableHead className="text-center font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Nilai (%)</TableHead>
+                <TableHead className="text-center font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Nilai</TableHead>
                 <TableHead className="text-center font-bold text-emerald-900/40 uppercase text-[10px] tracking-widest">Grade</TableHead>
               </TableRow>
             </TableHeader>
@@ -118,7 +118,7 @@ export function AttendanceStats({ stats }: AttendanceStatsProps) {
                           "text-sm font-black",
                           stat.percentage >= 80 ? "text-emerald-600" : "text-gray-600"
                         )}>
-                          {stat.percentage}%
+                          {stat.percentage}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
