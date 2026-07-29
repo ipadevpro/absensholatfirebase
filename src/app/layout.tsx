@@ -35,13 +35,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${amiri.variable} ${jakarta.variable}`}>
-      <body className="font-sans antialiased bg-[#fdfcf0] text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
+      <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 function recover() {
                   console.warn('Next.js asset load failure. Recovering...');
+                  
+                  // Prevent infinite reloading loops by using sessionStorage throttle
+                  try {
+                    var lastReload = sessionStorage.getItem('last-recovery-reload');
+                    var now = Date.now();
+                    if (lastReload && (now - parseInt(lastReload) < 10000)) {
+                      console.error('Recovery reload throttled to prevent infinite loop.');
+                      return;
+                    }
+                    sessionStorage.setItem('last-recovery-reload', now.toString());
+                  } catch (err) {
+                    console.error('sessionStorage access failed:', err);
+                  }
+
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(function(regs) {
                       var promises = regs.map(function(r) { return r.unregister(); });
@@ -84,6 +98,8 @@ export default function RootLayout({
             `
           }}
         />
+      </head>
+      <body className="font-sans antialiased bg-[#fdfcf0] text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
         <AuthProvider>
           {children}
           <Toaster position="top-center" expand={false} richColors />
