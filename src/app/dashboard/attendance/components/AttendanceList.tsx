@@ -106,6 +106,35 @@ export function AttendanceList({
           </div>
         );
       })}
+
+      {/* Keterangan Singkatan */}
+      <div className="mt-8 p-5 rounded-[2rem] bg-gray-50/50 border border-gray-100/80 backdrop-blur-sm">
+        <p className="text-xs font-bold text-emerald-900/60 uppercase tracking-widest mb-3 text-center sm:text-left">Keterangan Singkatan:</p>
+        <div className="flex flex-wrap gap-x-6 gap-y-3 justify-center sm:justify-start text-xs font-semibold text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-[11px] shadow-sm">H</span>
+            <span className="text-gray-700">Hadir</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-[11px] shadow-sm">S</span>
+            <span className="text-gray-700">Sakit</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-xl bg-blue-500 text-white flex items-center justify-center font-black text-[11px] shadow-sm">I</span>
+            <span className="text-gray-700">Izin</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center font-black text-[11px] shadow-sm">A</span>
+            <span className="text-gray-700">Alpa <span className="text-gray-400 font-medium">(Tanpa Keterangan)</span></span>
+          </div>
+          {gender === "akhwat" && (
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-purple-500 text-white flex items-center justify-center font-black text-[10px] shadow-sm">HD</span>
+              <span className="text-gray-700">Haid <span className="text-purple-500 font-bold">(Dihitung Hadir)</span></span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
