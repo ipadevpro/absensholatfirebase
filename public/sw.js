@@ -1,35 +1,36 @@
-const CACHE_NAME = "absen-sholat-v1";
+const CACHE_NAME = "absen-sholat-v2";
+const ASSETS_TO_CACHE = [
+  "/manifest.json",
+  "/icon-192.png",
+  "/icon-512.png"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        "/",
-        "/login",
-        "/dashboard",
-        "/manifest.json",
-        "/icon-192.png",
-        "/icon-512.png"
-      ]);
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-      return fetch(event.request).then((fetchResponse) => {
-        // Safari/WebKit workaround for "responses served by service worker has redirections"
-        if (fetchResponse.redirected) {
-          return fetch(fetchResponse.url);
-        }
-        return fetchResponse;
-      });
-    })
-  );
+  // Only handle GET requests
+  if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+
+  // Only intercept requests for specific static PWA assets
+  const isAssetToCache = ASSETS_TO_CACHE.some(asset => url.pathname === asset);
+
+  if (isAssetToCache) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+  }
+  // Page navigations, nextJS chunks, CSS, API calls, and Firebase requests 
+  // will bypass the service worker and load normally via the network.
 });
 
 self.addEventListener("activate", (event) => {
