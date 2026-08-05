@@ -98,7 +98,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboardData() {
-      if (!user || !role) return;
+      if (!user || !role) {
+        setChecking(false);
+        return;
+      }
       setChecking(true);
       try {
         if (role === "admin") {
@@ -298,7 +301,7 @@ export default function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, role]);
+  }, [user, role, profile]);
 
   if (checking) {
     return (
