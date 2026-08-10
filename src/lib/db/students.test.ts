@@ -1,6 +1,6 @@
 import { vi, describe, it, expect } from 'vitest';
-import { deleteStudents } from './students';
-import { writeBatch } from 'firebase/firestore';
+import { deleteStudents, getStudentsByClass } from './students';
+import { writeBatch, getDocs } from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => {
   const mockDelete = vi.fn();
@@ -36,5 +36,26 @@ describe('deleteStudents', () => {
     expect(writeBatch).toHaveBeenCalled();
     expect(batch.delete).toHaveBeenCalledTimes(3);
     expect(batch.commit).toHaveBeenCalled();
+  });
+});
+
+describe('getStudentsByClass', () => {
+  it('should fetch students for a class and sort them alphabetically by name', async () => {
+    const mockDocs = [
+      { id: '1', data: () => ({ name: 'Budi', classId: '7a', gender: 'ikhwan' }) },
+      { id: '2', data: () => ({ name: 'Ahmad', classId: '7a', gender: 'ikhwan' }) },
+      { id: '3', data: () => ({ name: 'Cici', classId: '7a', gender: 'akhwat' }) },
+    ];
+    vi.mocked(getDocs).mockResolvedValueOnce({
+      docs: mockDocs,
+    } as any);
+
+    const result = await getStudentsByClass('7a');
+
+    expect(getDocs).toHaveBeenCalled();
+    expect(result).toHaveLength(3);
+    expect(result[0].name).toBe('Ahmad');
+    expect(result[1].name).toBe('Budi');
+    expect(result[2].name).toBe('Cici');
   });
 });
