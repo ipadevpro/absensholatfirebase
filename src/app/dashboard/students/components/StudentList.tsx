@@ -129,6 +129,7 @@ export function StudentList({
               onClick={() => onDelegate(student)} 
               className="rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/60 min-h-[36px] h-9 px-3 text-xs font-medium touch-manipulation active:scale-[0.96] transition-transform"
               title="Delegasikan Koordinator"
+              aria-label={`Delegasikan koordinator untuk ${student.name}`}
             >
               <UserCog size={14} className="sm:mr-1.5" />
               <span className="hidden sm:inline">Delegasi</span>
@@ -140,6 +141,7 @@ export function StudentList({
               onClick={() => onEdit(student)}
               className="rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/60 min-h-[36px] h-9 px-3 text-xs font-medium touch-manipulation active:scale-[0.96] transition-transform"
               title="Edit Data"
+              aria-label={`Edit data ${student.name}`}
             >
               <Edit3 size={14} className="sm:mr-1.5" />
               <span className="hidden sm:inline">Edit</span>
@@ -151,6 +153,7 @@ export function StudentList({
               onClick={() => onDelete(student.id)}
               className="rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 min-h-[36px] min-w-[36px] h-9 w-9 touch-manipulation active:scale-[0.96] transition-transform"
               title="Hapus Siswa"
+              aria-label={`Hapus siswa ${student.name}`}
             >
               <Trash2 size={14} />
             </Button>

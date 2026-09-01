@@ -91,6 +91,7 @@ export function Sidebar() {
         
         <button
           onClick={handleLogout}
+          aria-label="Keluar dari akun"
           className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg w-full transition-colors"
         >
           <LogOut className="h-4 w-4" />

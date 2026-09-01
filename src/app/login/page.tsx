@@ -62,7 +62,12 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-xs flex items-center gap-2">
+            <div 
+              id="login-error"
+              role="alert" 
+              aria-live="polite" 
+              className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-xs flex items-center gap-2"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -80,6 +85,8 @@ export default function LoginPage() {
               required
               disabled={isLoading}
               autoComplete="email"
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
               placeholder="nama@sekolah.sch.id"
               className="rounded-lg border-input bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm"
             />
@@ -98,6 +105,8 @@ export default function LoginPage() {
               minLength={6}
               disabled={isLoading}
               autoComplete="current-password"
+              aria-invalid={!!error}
+              aria-describedby={error ? "login-error" : undefined}
               placeholder="••••••••"
               className="rounded-lg border-input bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm"
             />

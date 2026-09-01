@@ -198,6 +198,7 @@ export default function ReportsPage() {
           <Button 
             onClick={handleFetch} 
             disabled={loading || !classId} 
+            aria-label="Tampilkan data laporan rekapitulasi"
             className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm active:scale-[0.97] touch-manipulation transition-transform"
           >
             {loading ? (
@@ -212,6 +213,7 @@ export default function ReportsPage() {
             variant="outline" 
             disabled={loading || stats.length === 0} 
             title="Ekspor ke CSV"
+            aria-label="Ekspor rekapitulasi ke file CSV"
             className="h-9 w-9 min-h-[36px] min-w-[36px] p-0 rounded-lg border-border hover:bg-accent shrink-0 active:scale-[0.97] touch-manipulation transition-transform"
           >
             <Download className="h-4 w-4 text-foreground" />
