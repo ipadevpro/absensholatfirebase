@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAttendanceStats } from "@/lib/db/reports";
-import { AttendanceStats as StatsType, Coordinator, Supervisor } from "@/types";
+import { AttendanceStats as StatsType } from "@/types";
 import { AttendanceStats } from "./components/AttendanceStats";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
-import { db } from "@/lib/firebase/config";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,7 +37,6 @@ export default function ReportsPage() {
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [stats, setStats] = useState<StatsType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
@@ -61,7 +58,6 @@ export default function ReportsPage() {
     } else if (role === "admin") {
       setIsAdmin(true);
     }
-    setInitialLoading(false);
   }, [role, profile, authLoading]);
 
   // Fetch stats
@@ -76,8 +72,12 @@ export default function ReportsPage() {
         parseInt(month)
       );
       setStats(data);
-    } catch (e) {
+      if (data.length === 0) {
+        toast.info("Tidak ada data absensi untuk periode yang dipilih");
+      }
+    } catch (e: any) {
       console.error("Error fetching stats:", e);
+      toast.error("Gagal memuat laporan: " + e.message);
     } finally {
       setLoading(false);
     }
@@ -93,84 +93,81 @@ export default function ReportsPage() {
       "Nama Siswa": s.studentName,
       "Jumlah Hadir": s.attended,
       "Total Sholat": s.totalPrayers,
-      "Nilai": s.percentage,
+      "Nilai (%)": s.percentage,
       "Grade": getGrade(s.percentage)
     }));
     
     const className = AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId;
-    const fileName = `Laporan_Absen_${className}_${month}_${year}`;
+    const fileName = `Laporan_Absen_Kelas_${className}_${gender}_${month}_${year}`;
     
     exportToCSV(exportData, fileName);
     toast.success("Laporan berhasil diunduh");
   };
-
-  if (initialLoading) {
-     return (
-       <div className="flex h-full items-center justify-center p-12">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-       </div>
-     );
-  }
 
   const filteredClassesForSelect = supervisorClasses.length > 0
     ? AVAILABLE_CLASSES.filter(c => supervisorClasses.includes(c.id))
     : AVAILABLE_CLASSES;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight">Laporan Absensi</h1>
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Laporan Absensi</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Rekap kehadiran dan perhitungan nilai kedisiplinan sholat siswa.
+        </p>
+      </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-5 items-end bg-white p-4 rounded-lg border shadow-sm">
-        <div className="space-y-2">
-          <Label>Kelas</Label>
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 items-end bg-card p-4 rounded-xl border border-border shadow-sm">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">Kelas</Label>
           {isAdmin ? (
             <Select value={classId} onValueChange={setClassId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-xs rounded-lg border-input bg-background">
                 <SelectValue placeholder="Pilih kelas" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-lg">
                 {filteredClassesForSelect.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
+                  <SelectItem key={cls.id} value={cls.id} className="text-xs">
+                    Kelas {cls.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           ) : (
-            <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm flex items-center">
-              {AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId}
+            <div className="h-9 px-3 rounded-lg border border-border bg-muted/50 text-xs font-medium text-foreground flex items-center">
+              Kelas {AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId}
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Kategori</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">Kategori</Label>
           {isAdmin ? (
             <Select value={gender} onValueChange={setGender}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-xs rounded-lg border-input bg-background">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ikhwan">Ikhwan</SelectItem>
-                <SelectItem value="akhwat">Akhwat</SelectItem>
+              <SelectContent className="rounded-lg">
+                <SelectItem value="ikhwan" className="text-xs">Ikhwan</SelectItem>
+                <SelectItem value="akhwat" className="text-xs">Akhwat</SelectItem>
               </SelectContent>
             </Select>
           ) : (
-            <div className="h-10 px-3 py-2 rounded-md border bg-muted text-sm flex items-center capitalize">
+            <div className="h-9 px-3 rounded-lg border border-border bg-muted/50 text-xs font-medium text-foreground flex items-center capitalize">
               {gender}
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Bulan</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">Bulan</Label>
           <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-xs rounded-lg border-input bg-background">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-lg">
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={String(m)}>
+                <SelectItem key={m} value={String(m)} className="text-xs">
                   {new Date(0, m - 1).toLocaleString('id-ID', { month: 'long' })}
                 </SelectItem>
               ))}
@@ -178,18 +175,18 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Tahun</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">Tahun</Label>
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-xs rounded-lg border-input bg-background">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-lg">
               {Array.from(
                 { length: new Date().getFullYear() - 2023 + 2 },
                 (_, i) => 2023 + i
               ).map((y) => (
-                <SelectItem key={y} value={String(y)}>
+                <SelectItem key={y} value={String(y)} className="text-xs">
                   {y}
                 </SelectItem>
               ))}
@@ -197,22 +194,32 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:col-span-1">
-          <Button onClick={handleFetch} disabled={loading || !classId} className="flex-1">
+        <div className="flex gap-2 w-full">
+          <Button 
+            onClick={handleFetch} 
+            disabled={loading || !classId} 
+            className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm"
+          >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
             ) : (
-              <Search className="h-4 w-4 mr-2" />
+              <Search className="h-3.5 w-3.5 mr-1.5" />
             )}
             Tampilkan
           </Button>
-          <Button onClick={handleExport} variant="outline" disabled={loading || stats.length === 0} title="Export CSV">
-            <Download className="h-4 w-4" />
+          <Button 
+            onClick={handleExport} 
+            variant="outline" 
+            disabled={loading || stats.length === 0} 
+            title="Ekspor ke CSV"
+            className="h-9 w-9 p-0 rounded-lg border-border hover:bg-accent shrink-0"
+          >
+            <Download className="h-4 w-4 text-foreground" />
           </Button>
         </div>
       </div>
 
-      <AttendanceStats stats={stats} />
+      <AttendanceStats stats={stats} loading={loading} />
     </div>
   );
 }

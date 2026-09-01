@@ -14,6 +14,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
+  // If user is present (e.g. hydrated/cached), render layout shell smoothly
+  if (user) {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen" role="status" aria-label="Loading">
@@ -23,6 +28,5 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) return null;
-  return <>{children}</>;
+  return null;
 }

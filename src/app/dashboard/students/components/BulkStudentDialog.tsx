@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -53,7 +52,7 @@ export function BulkStudentDialog({
   onSuccess,
   defaultClassId,
 }: BulkStudentDialogProps) {
-  const [mode, setRole] = useState<"table" | "paste">("table");
+  const [mode, setMode] = useState<"table" | "paste">("table");
   const [pasteContent, setPasteContent] = useState("");
   const [rows, setRows] = useState<BulkStudentRow[]>([
     { id: Math.random().toString(), name: "", classId: defaultClassId || "", gender: "ikhwan" },
@@ -113,7 +112,7 @@ export function BulkStudentDialog({
     });
 
     setRows(newRows);
-    setRole("table");
+    setMode("table");
     setPasteContent("");
     toast.success(`Berhasil memproses ${newRows.length} baris. Silakan periksa kembali.`);
   };
@@ -159,107 +158,105 @@ export function BulkStudentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <div className="p-6 pb-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-xl border border-border">
+        <div className="p-5 pb-2 border-b border-border">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-serif">Bulk Tambah Siswa</DialogTitle>
-            <DialogDescription>
-              Tambahkan banyak siswa sekaligus. Anda bisa mengisi tabel atau langsung tempel dari Excel.
+            <DialogTitle className="text-xl font-bold tracking-tight text-foreground">Bulk Tambah Siswa</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Tambahkan banyak siswa sekaligus dengan mengisi tabel atau menempel data langsung dari spreadsheet (Excel).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-2 mt-4 border-b">
+          <div className="flex gap-2 mt-4">
             <Button 
-              variant={mode === "table" ? "default" : "ghost"} 
+              variant={mode === "table" ? "default" : "outline"} 
               size="sm" 
-              onClick={() => setRole("table")}
-              className="rounded-none border-b-2 border-transparent data-[variant=default]:border-primary"
-              data-variant={mode === "table" ? "default" : "ghost"}
+              onClick={() => setMode("table")}
+              className="rounded-lg h-8 text-xs font-medium"
             >
-              <TableIcon size={16} className="mr-2" /> Mode Tabel
+              <TableIcon size={14} className="mr-1.5" /> Mode Tabel
             </Button>
             <Button 
-              variant={mode === "paste" ? "default" : "ghost"} 
+              variant={mode === "paste" ? "default" : "outline"} 
               size="sm" 
-              onClick={() => setRole("paste")}
-              className="rounded-none border-b-2 border-transparent data-[variant=default]:border-primary"
-              data-variant={mode === "paste" ? "default" : "ghost"}
+              onClick={() => setMode("paste")}
+              className="rounded-lg h-8 text-xs font-medium"
             >
-              <ClipboardPaste size={16} className="mr-2" /> Tempel dari Excel
+              <ClipboardPaste size={14} className="mr-1.5" /> Tempel dari Excel
             </Button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-6 pt-2">
+        <div className="flex-1 overflow-auto p-5">
           {error && (
-            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 mb-4">
-              <AlertCircle className="h-4 w-4" />
+            <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg border border-destructive/20 flex items-center gap-2 mb-4">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <p>{error}</p>
             </div>
           )}
 
           {mode === "table" ? (
-            <div className="border rounded-xl overflow-hidden bg-white shadow-inner">
+            <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
               <Table>
-                <TableHeader className="bg-gray-50/50">
-                  <TableRow>
-                    <TableHead className="w-[40%] font-bold">Nama Lengkap</TableHead>
-                    <TableHead className="w-[25%] font-bold">Kelas</TableHead>
-                    <TableHead className="w-[25%] font-bold">Jenis Kelamin</TableHead>
-                    <TableHead className="w-[10%] text-center">Aksi</TableHead>
+                <TableHeader className="bg-muted/50">
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="w-[40%] text-xs font-semibold text-foreground">Nama Lengkap</TableHead>
+                    <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kelas</TableHead>
+                    <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kategori</TableHead>
+                    <TableHead className="w-[10%] text-center text-xs font-semibold text-foreground">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-emerald-50/30">
-                      <TableCell>
+                    <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                      <TableCell className="p-2">
                         <Input
                           placeholder="Nama Siswa"
                           value={row.name}
                           onChange={(e) => updateRow(row.id, "name", e.target.value)}
-                          className="border-none bg-transparent focus-visible:ring-1"
+                          className="h-8 text-xs rounded-lg border-input bg-background"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-2">
                         <Select
                           value={row.classId}
                           onValueChange={(val) => updateRow(row.id, "classId", val)}
                         >
-                          <SelectTrigger className="border-none bg-transparent focus:ring-1">
+                          <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
                             <SelectValue placeholder="Pilih Kelas" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="rounded-lg">
                             {AVAILABLE_CLASSES.map((cls) => (
-                              <SelectItem key={cls.id} value={cls.id}>
+                              <SelectItem key={cls.id} value={cls.id} className="text-xs">
                                 {cls.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="p-2">
                         <Select
                           value={row.gender}
                           onValueChange={(val) => updateRow(row.id, "gender", val as Gender)}
                         >
-                          <SelectTrigger className="border-none bg-transparent focus:ring-1">
+                          <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ikhwan">Ikhwan</SelectItem>
-                            <SelectItem value="akhwat">Akhwat</SelectItem>
+                          <SelectContent className="rounded-lg">
+                            <SelectItem value="ikhwan" className="text-xs">Ikhwan</SelectItem>
+                            <SelectItem value="akhwat" className="text-xs">Akhwat</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="p-2 text-center">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:bg-destructive/10 h-8 w-8"
+                          className="text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"
                           onClick={() => removeRow(row.id)}
                           disabled={rows.length === 1}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -271,53 +268,57 @@ export function BulkStudentDialog({
                 variant="ghost"
                 size="sm"
                 onClick={addRow}
-                className="w-full rounded-none border-t text-emerald-600 hover:bg-emerald-50 h-12"
+                className="w-full rounded-none border-t border-border text-primary hover:bg-accent h-10 text-xs font-medium"
               >
-                <Plus size={16} className="mr-2" /> Tambah Baris Baru
+                <Plus size={14} className="mr-1.5" /> Tambah Baris Baru
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-amber-800 text-sm">
-                <p className="font-bold mb-1 underline italic">Cara Penggunaan:</p>
-                <ol className="list-decimal ml-4 space-y-1 opacity-90 font-medium">
-                  <li>Siapkan Excel dengan 3 kolom: <strong>Nama</strong>, <strong>Kelas</strong> (7a, 8b, dsb), <strong>Gender</strong> (L/P atau Ikhwan/Akhwat).</li>
-                  <li>Copy (Ctrl+C) data tersebut dari Excel.</li>
-                  <li>Tempel (Ctrl+V) di kotak di bawah ini.</li>
-                  <li>Klik tombol <strong>"Proses Data"</strong> untuk mengubahnya menjadi tabel.</li>
+            <div className="space-y-3">
+              <div className="bg-amber-50/80 border border-amber-200/60 p-3.5 rounded-xl text-amber-800 text-xs">
+                <p className="font-semibold mb-1">Panduan Format Tempel:</p>
+                <ol className="list-decimal ml-4 space-y-0.5 opacity-90">
+                  <li>Siapkan Excel dengan 3 kolom: <strong>Nama</strong>, <strong>Kelas</strong> (7a, 8b, dsb), <strong>Kategori</strong> (L/P atau Ikhwan/Akhwat).</li>
+                  <li>Salin (Ctrl+C / Cmd+C) data tersebut dari Excel.</li>
+                  <li>Tempel (Ctrl+V / Cmd+V) pada kotak di bawah.</li>
+                  <li>Klik <strong>&quot;Proses Data Tempel&quot;</strong> untuk mengubahnya menjadi baris tabel.</li>
                 </ol>
               </div>
               <Textarea 
                 placeholder="Tempel data Excel di sini..."
-                className="min-h-[300px] font-mono text-sm p-4 bg-gray-50 border-emerald-100"
+                className="min-h-[220px] font-mono text-xs p-3 rounded-xl border-input bg-background"
                 value={pasteContent}
                 onChange={(e) => setPasteContent(e.target.value)}
               />
-              <Button onClick={handlePasteProcess} className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-bold">
-                <ClipboardPaste size={20} className="mr-2" /> Proses Data Tempel
+              <Button onClick={handlePasteProcess} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium rounded-lg">
+                <ClipboardPaste size={15} className="mr-1.5" /> Proses Data Tempel
               </Button>
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-2 bg-gray-50 border-t flex justify-between items-center">
-          <p className="text-sm font-medium text-emerald-700">
-            Total: <strong>{rows.length}</strong> Siswa siap disimpan
+        <div className="p-4 bg-muted/40 border-t border-border flex justify-between items-center">
+          <p className="text-xs font-medium text-muted-foreground">
+            Total: <strong className="text-foreground">{rows.length}</strong> Siswa
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSaving}
-              className="px-6 rounded-xl"
+              className="h-8 px-4 rounded-lg text-xs"
             >
               Batal
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || rows.length === 0 || (rows.length === 1 && !rows[0].name)} className="px-8 bg-primary rounded-xl">
+            <Button 
+              onClick={handleSave} 
+              disabled={isSaving || rows.length === 0 || (rows.length === 1 && !rows[0].name)} 
+              className="h-8 px-5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
               {isSaving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                   Menyimpan...
                 </>
               ) : (

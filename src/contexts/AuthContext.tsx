@@ -7,6 +7,52 @@ import { doc, getDoc } from "firebase/firestore";
 
 export type UserRole = "admin" | "coordinator" | "supervisor" | null;
 
+const AUTH_UID_KEY = "auth_uid";
+const AUTH_ROLE_KEY = "auth_role";
+const AUTH_PROFILE_KEY = "auth_profile";
+
+function getCachedAuth(): { uid: string | null; role: UserRole; profile: any | null } {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return { uid: null, role: null, profile: null };
+  }
+  try {
+    const uid = window.localStorage.getItem(AUTH_UID_KEY);
+    const role = window.localStorage.getItem(AUTH_ROLE_KEY) as UserRole;
+    const profileRaw = window.localStorage.getItem(AUTH_PROFILE_KEY);
+    const profile = profileRaw ? JSON.parse(profileRaw) : null;
+    return { uid, role, profile };
+  } catch (e) {
+    console.error("Error reading auth cache from localStorage:", e);
+    return { uid: null, role: null, profile: null };
+  }
+}
+
+function setCachedAuth(uid: string, role: UserRole, profile: any) {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    if (uid && role) {
+      window.localStorage.setItem(AUTH_UID_KEY, uid);
+      window.localStorage.setItem(AUTH_ROLE_KEY, role);
+      window.localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(profile ?? {}));
+    } else {
+      clearCachedAuth();
+    }
+  } catch (e) {
+    console.error("Error writing auth cache to localStorage:", e);
+  }
+}
+
+function clearCachedAuth() {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.removeItem(AUTH_UID_KEY);
+    window.localStorage.removeItem(AUTH_ROLE_KEY);
+    window.localStorage.removeItem(AUTH_PROFILE_KEY);
+  } catch (e) {
+    console.error("Error clearing auth cache from localStorage:", e);
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   role: UserRole;
@@ -27,44 +73,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const activeUidRef = React.useRef<string | null>(null);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Fetch role and profile
+    // Read cache on mount
+    const cached = getCachedAuth();
+    if (cached.uid && cached.role) {
+      setRole(cached.role);
+      setProfile(cached.profile);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      activeUidRef.current = currentUser ? currentUser.uid : null;
+
+      if (currentUser) {
+        // Fast path (SWR): if cached user matches currentUser, hydrate role & profile immediately
+        const currentCache = getCachedAuth();
+        if (currentCache.uid === currentUser.uid && currentCache.role) {
+          setRole(currentCache.role);
+          setProfile(currentCache.profile);
+          setLoading(false);
+        }
+
+        // Parallel role discovery
         try {
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          if (adminDoc.exists()) {
-            setRole("admin");
-            setProfile(adminDoc.data());
-          } else {
-            const supervisorDoc = await getDoc(doc(db, "supervisors", user.uid));
-            if (supervisorDoc.exists()) {
-              setRole("supervisor");
-              setProfile(supervisorDoc.data());
-            } else {
-              const coordDoc = await getDoc(doc(db, "coordinators", user.uid));
-              if (coordDoc.exists()) {
-                setRole("coordinator");
-                setProfile(coordDoc.data());
-              } else {
-                setRole(null);
-                setProfile(null);
-              }
-            }
+          const [adminDoc, supervisorDoc, coordDoc] = await Promise.all([
+            getDoc(doc(db, "admins", currentUser.uid)),
+            getDoc(doc(db, "supervisors", currentUser.uid)),
+            getDoc(doc(db, "coordinators", currentUser.uid)),
+          ]);
+
+          // Guard against stale async resolution if user logged out or switched during fetch
+          if (activeUidRef.current !== currentUser.uid) {
+            return;
           }
+
+          let detectedRole: UserRole = null;
+          let detectedProfile: any = null;
+
+          if (adminDoc.exists()) {
+            detectedRole = "admin";
+            detectedProfile = adminDoc.data();
+          } else if (supervisorDoc.exists()) {
+            detectedRole = "supervisor";
+            detectedProfile = supervisorDoc.data();
+          } else if (coordDoc.exists()) {
+            detectedRole = "coordinator";
+            detectedProfile = coordDoc.data();
+          }
+
+          setRole(detectedRole);
+          setProfile(detectedProfile);
+          setCachedAuth(currentUser.uid, detectedRole, detectedProfile);
         } catch (e) {
           console.error("Error fetching role and profile:", e);
-          setRole(null);
-          setProfile(null);
+          if (activeUidRef.current === currentUser.uid && currentCache.uid !== currentUser.uid) {
+            setRole(null);
+            setProfile(null);
+          }
+        } finally {
+          if (activeUidRef.current === currentUser.uid) {
+            setLoading(false);
+          }
         }
       } else {
         setRole(null);
         setProfile(null);
+        clearCachedAuth();
+        setLoading(false);
       }
-      setLoading(false);
     });
-    return unsubscribe;
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -80,6 +161,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setError(null);
+      activeUidRef.current = null;
+      clearCachedAuth();
+      setUser(null);
+      setRole(null);
+      setProfile(null);
       await signOut(auth);
     } catch (err: any) {
       setError(err.message || "Logout failed");
@@ -103,3 +189,4 @@ export function useAuth() {
   }
   return context;
 }
+

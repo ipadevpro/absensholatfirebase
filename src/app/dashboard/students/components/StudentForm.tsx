@@ -32,29 +32,32 @@ export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: Stu
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{student ? "Edit Siswa" : "Tambah Siswa"}</CardTitle>
+    <Card className="rounded-xl border border-border bg-card shadow-sm">
+      <CardHeader className="p-5 pb-3 border-b border-border">
+        <CardTitle className="text-base font-semibold text-foreground">
+          {student ? "Edit Data Siswa" : "Tambah Siswa Baru"}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nama Siswa</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-medium text-foreground">Nama Siswa</Label>
             <Input
               id="name"
-              placeholder="Nama Lengkap"
+              placeholder="Nama Lengkap Siswa"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="classId">Kelas</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="classId" className="text-xs font-medium text-foreground">Kelas</Label>
             <Select value={classId} onValueChange={setClassId}>
-              <SelectTrigger id="classId">
-                <SelectValue placeholder="Pilih kelas" />
+              <SelectTrigger id="classId" className="rounded-lg border-input bg-background h-9 text-sm">
+                <SelectValue placeholder="Pilih Kelas" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-lg">
                 {AVAILABLE_CLASSES.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name}
@@ -63,21 +66,23 @@ export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: Stu
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="gender">Jenis Kelamin</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="gender" className="text-xs font-medium text-foreground">Kategori (Gender)</Label>
             <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
-              <SelectTrigger id="gender">
-                <SelectValue placeholder="Pilih jenis kelamin" />
+              <SelectTrigger id="gender" className="rounded-lg border-input bg-background h-9 text-sm">
+                <SelectValue placeholder="Pilih Kategori" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-lg">
                 <SelectItem value="ikhwan">Ikhwan</SelectItem>
                 <SelectItem value="akhwat">Akhwat</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2 pt-2">
-            <Button type="submit">{student ? "Update" : "Tambah"}</Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="submit" className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 text-xs font-medium">
+              {student ? "Simpan Perubahan" : "Tambah Siswa"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
               Batal
             </Button>
           </div>

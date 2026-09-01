@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MoonStar, AlertCircle, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -41,45 +41,87 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 gap-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Absen Sholat</CardTitle>
-          <p className="text-sm text-gray-500">SMP PGII 1 Bandung</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={handleEmailChange}
-                required
-                placeholder="email@example.com"
-              />
+    <div className="bg-background min-h-dvh flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full rounded-2xl border border-border/80 bg-card p-8 shadow-sm">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="h-12 w-12 rounded-2xl bg-emerald-100/80 text-emerald-800 border border-emerald-200/60 flex items-center justify-center shadow-sm mb-3">
+            <MoonStar className="h-6 w-6 text-emerald-800" />
+          </div>
+          <h1 className="font-semibold text-2xl tracking-tight text-foreground">
+            Absen Sholat
+          </h1>
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">
+            SMP PGII 1 Bandung
+          </p>
+          <p className="text-xs text-muted-foreground/80 mt-2">
+            Masuk ke sistem presensi ibadah harian
+          </p>
+        </div>
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-xs flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={handlePasswordChange}
-                required
-                minLength={6}
-                placeholder="Minimal 6 karakter"
-              />
-            </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Memuat..." : "Login"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-      <footer className="text-xs text-gray-400 text-center font-medium mt-2">
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-foreground/80">
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              required
+              disabled={isLoading}
+              autoComplete="email"
+              placeholder="nama@sekolah.sch.id"
+              className="rounded-lg border-input bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-xs font-medium text-foreground/80">
+              Password
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={handlePasswordChange}
+              required
+              minLength={6}
+              disabled={isLoading}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              className="rounded-lg border-input bg-background/50 focus:bg-background focus:ring-2 focus:ring-primary/20 text-sm"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-lg bg-primary text-primary-foreground font-medium h-10 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-sm mt-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Memproses...</span>
+              </>
+            ) : (
+              <span>Masuk</span>
+            )}
+          </Button>
+        </form>
+      </div>
+
+      {/* Footer Attribution */}
+      <footer className="text-xs text-muted-foreground/60 text-center mt-6">
         Dikembangkan oleh Devi Saidulloh, S.Pd., Gr.
       </footer>
     </div>

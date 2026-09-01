@@ -52,6 +52,7 @@ export function DelegationDialog({
       });
 
       if (result.success) {
+        toast.success(`Akun koordinator untuk ${student.name} berhasil dibuat`);
         onSuccess();
         onOpenChange(false);
         setEmail("");
@@ -72,52 +73,60 @@ export function DelegationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] rounded-xl border-border p-5">
         <DialogHeader>
-          <DialogTitle>Delegasikan sebagai Koordinator</DialogTitle>
-          <DialogDescription>
-            Buat akun login untuk <strong>{student.name}</strong>. Koordinator akan mengabsen sholat untuk kelas {student.classId.toUpperCase()}.
+          <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
+            Delegasikan sebagai Koordinator
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground pt-1">
+            Buat akun login untuk <strong className="text-foreground">{student.name}</strong>. Koordinator akan bertugas mengabsen sholat kelas {student.classId.toUpperCase()}.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleDelegation}>
-          <div className="grid gap-4 py-4">
-            {error && (
-              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                <p>{error}</p>
-              </div>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="nama@pgii.sch.id"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <form onSubmit={handleDelegation} className="space-y-4 pt-2">
+          {error && (
+            <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg border border-destructive/20 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p>{error}</p>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Minimal 6 karakter"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-foreground">Email Koordinator</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="nama@pgii.sch.id"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
+              required
+            />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-xs font-medium text-foreground">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Minimal 6 karakter"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
+              required
+              minLength={6}
+            />
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Memproses..." : "Delegasikan"}
+            <Button type="submit" disabled={isLoading} className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-5 text-xs font-medium">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                "Delegasikan"
+              )}
             </Button>
           </DialogFooter>
         </form>

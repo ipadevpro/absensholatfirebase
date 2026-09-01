@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 
@@ -18,9 +18,10 @@ interface SupervisorFormProps {
   }) => Promise<boolean | void>;
   isLoading?: boolean;
   error?: string | null;
+  onCancel?: () => void;
 }
 
-export default function SupervisorForm({ onSubmit, isLoading = false, error }: SupervisorFormProps) {
+export default function SupervisorForm({ onSubmit, isLoading = false, error, onCancel }: SupervisorFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,57 +46,65 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error }: S
   };
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
-      <CardHeader>
-        <CardTitle>Tambah Pembina Baru</CardTitle>
+    <Card className="w-full max-w-lg mx-auto rounded-xl border border-border bg-card shadow-sm">
+      <CardHeader className="p-5 pb-3 border-b border-border">
+        <CardTitle className="text-base font-semibold text-foreground">Tambah Pembina Baru</CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="p-5 space-y-4">
           {error && (
-            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
+            <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg border border-destructive/20 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <p>{error}</p>
             </div>
           )}
-          <div className="space-y-2">
-            <Label htmlFor="name">Nama Lengkap</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-medium text-foreground">Nama Lengkap</Label>
             <Input
               id="name"
-              placeholder="Nama Pembina"
+              placeholder="Nama Guru Pembina"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
               required
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-foreground">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="email@example.com"
+              placeholder="pembina@pgii.sch.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
               required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-xs font-medium text-foreground">Password</Label>
             <Input
               id="password"
               type="password"
               placeholder="Minimal 6 karakter"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm"
               required
               minLength={6}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Kelas Binaan</Label>
-            <div className="grid grid-cols-2 gap-3 p-3 border border-emerald-100 rounded-xl bg-gray-50/50">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground">Kelas Binaan</Label>
+              <span className="text-[11px] text-muted-foreground">
+                {selectedClasses.length} kelas dipilih
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border border-border rounded-xl bg-muted/30 max-h-48 overflow-y-auto">
               {AVAILABLE_CLASSES.map((cls) => (
                 <div key={cls.id} className="flex items-center gap-2">
                   <Checkbox
@@ -108,19 +117,31 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error }: S
                         setSelectedClasses(selectedClasses.filter((c) => c !== cls.id));
                       }
                     }}
-                    className="border-emerald-200 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md"
+                    className="rounded-md h-4 w-4"
                   />
-                  <label htmlFor={`class-${cls.id}`} className="text-sm font-medium text-gray-750 cursor-pointer select-none">
-                    {cls.name}
+                  <label htmlFor={`class-${cls.id}`} className="text-xs font-medium text-foreground cursor-pointer select-none">
+                    Kelas {cls.name}
                   </label>
                 </div>
               ))}
             </div>
           </div>
         </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Menambahkan..." : "Tambah Pembina"}
+        <CardFooter className="p-5 pt-0 flex gap-2">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
+              Batal
+            </Button>
+          )}
+          <Button type="submit" className="flex-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Menambahkan...
+              </>
+            ) : (
+              "Tambah Pembina"
+            )}
           </Button>
         </CardFooter>
       </form>
