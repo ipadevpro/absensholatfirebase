@@ -78,12 +78,20 @@ export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: Stu
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 text-xs font-medium">
-              {student ? "Simpan Perubahan" : "Tambah Siswa"}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel} 
+              className="w-full sm:w-auto rounded-lg border-border h-9 px-4 text-xs font-medium active:scale-[0.97] touch-manipulation"
+            >
               Batal
+            </Button>
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4 text-xs font-medium active:scale-[0.97] touch-manipulation"
+            >
+              {student ? "Simpan Perubahan" : "Tambah Siswa"}
             </Button>
           </div>
         </form>

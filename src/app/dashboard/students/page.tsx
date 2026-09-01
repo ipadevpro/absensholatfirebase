@@ -216,7 +216,7 @@ export default function StudentsPage() {
                 <div
                   key={cls.id}
                   onClick={() => setSelectedClassId(cls.id)}
-                  className="group p-4 bg-card border border-border rounded-xl hover:border-emerald-200 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 shadow-sm"
+                  className="group p-4 bg-card border border-border rounded-xl hover:border-emerald-200 hover:shadow-sm transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 shadow-sm active:scale-[0.97] touch-manipulation"
                 >
                   <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg group-hover:scale-105 transition-transform">
                     <GraduationCap size={22} />
@@ -243,7 +243,7 @@ export default function StudentsPage() {
           <Button
             variant="ghost"
             onClick={() => setSelectedClassId(null)}
-            className="rounded-lg border border-border hover:bg-accent text-foreground mb-2 h-8 px-3 text-xs"
+            className="rounded-lg border border-border hover:bg-accent text-foreground mb-2 h-8 px-3 text-xs active:scale-[0.97] touch-manipulation transition-transform"
           >
             <ArrowLeft size={14} className="mr-1.5" />
             Kembali ke Daftar Kelas
@@ -261,14 +261,14 @@ export default function StudentsPage() {
               <Button 
                 variant="outline" 
                 onClick={() => setShowBulkAdd(true)}
-                className="rounded-lg border-border hover:bg-accent text-xs h-9"
+                className="rounded-lg border-border hover:bg-accent text-xs h-9 active:scale-[0.97] touch-manipulation transition-transform"
               >
                 <Users2 size={16} className="mr-1.5" />
                 Bulk Tambah
               </Button>
               <Button 
                 onClick={() => setShowForm(true)}
-                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm text-xs h-9"
+                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm text-xs h-9 active:scale-[0.97] touch-manipulation transition-transform"
               >
                 <UserPlus size={16} className="mr-1.5" />
                 Tambah Siswa
@@ -343,7 +343,7 @@ export default function StudentsPage() {
 
       <div className="space-y-4">
         {!isLoading && paginatedStudents.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 bg-card rounded-xl border border-border shadow-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 bg-card rounded-xl border border-border shadow-sm">
             <div className="flex items-center gap-3">
               <Checkbox
                 checked={paginatedStudents.length > 0 && paginatedStudents.every(s => selectedStudentIds.includes(s.id))}
@@ -373,7 +373,7 @@ export default function StudentsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedStudentIds([])}
-                    className="text-xs text-muted-foreground hover:text-foreground h-8 px-2.5 rounded-lg border border-border"
+                    className="text-xs text-muted-foreground hover:text-foreground h-8 px-2.5 rounded-lg border border-border active:scale-[0.97] touch-manipulation transition-transform"
                   >
                     Batal
                   </Button>
@@ -381,7 +381,7 @@ export default function StudentsPage() {
                     size="sm"
                     variant="destructive"
                     onClick={() => setStudentIdsToDelete(selectedStudentIds)}
-                    className="text-xs h-8 px-3 rounded-lg flex items-center gap-1.5 shadow-sm"
+                    className="text-xs h-8 px-3 rounded-lg flex items-center gap-1.5 shadow-sm active:scale-[0.97] touch-manipulation transition-transform"
                   >
                     <Trash2 size={13} />
                     Hapus Terpilih
@@ -411,8 +411,8 @@ export default function StudentsPage() {
 
         {/* Pagination Controls */}
         {!isLoading && totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-card rounded-xl border border-border shadow-sm">
-            <p className="text-xs text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-card rounded-xl border border-border shadow-sm">
+            <p className="text-xs text-muted-foreground text-center sm:text-left">
               Menampilkan <strong className="text-foreground">{paginatedStudents.length}</strong> dari <strong className="text-foreground">{filteredStudents.length}</strong> siswa
             </p>
             
@@ -422,7 +422,7 @@ export default function StudentsPage() {
                 size="icon"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="rounded-lg border-border h-8 w-8"
+                className="rounded-lg border-border h-9 w-9 min-h-[36px] min-w-[36px] active:scale-[0.97] touch-manipulation transition-transform"
               >
                 <ChevronLeft size={16} />
               </Button>
@@ -442,7 +442,7 @@ export default function StudentsPage() {
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
                       className={cn(
-                        "h-8 w-8 rounded-lg text-xs font-semibold",
+                        "h-9 w-9 min-h-[36px] min-w-[36px] p-0 rounded-lg text-xs font-semibold active:scale-[0.97] touch-manipulation transition-transform",
                         currentPage === pageNum 
                           ? "bg-primary text-primary-foreground shadow-sm" 
                           : "border-border text-muted-foreground hover:text-foreground"
@@ -459,7 +459,7 @@ export default function StudentsPage() {
                 size="icon"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="rounded-lg border-border h-8 w-8"
+                className="rounded-lg border-border h-9 w-9 min-h-[36px] min-w-[36px] active:scale-[0.97] touch-manipulation transition-transform"
               >
                 <ChevronRight size={16} />
               </Button>

@@ -172,7 +172,7 @@ export function BulkStudentDialog({
               variant={mode === "table" ? "default" : "outline"} 
               size="sm" 
               onClick={() => setMode("table")}
-              className="rounded-lg h-8 text-xs font-medium"
+              className="rounded-lg h-8 text-xs font-medium active:scale-[0.97] touch-manipulation"
             >
               <TableIcon size={14} className="mr-1.5" /> Mode Tabel
             </Button>
@@ -180,7 +180,7 @@ export function BulkStudentDialog({
               variant={mode === "paste" ? "default" : "outline"} 
               size="sm" 
               onClick={() => setMode("paste")}
-              className="rounded-lg h-8 text-xs font-medium"
+              className="rounded-lg h-8 text-xs font-medium active:scale-[0.97] touch-manipulation"
             >
               <ClipboardPaste size={14} className="mr-1.5" /> Tempel dari Excel
             </Button>
@@ -197,78 +197,80 @@ export function BulkStudentDialog({
 
           {mode === "table" ? (
             <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="w-[40%] text-xs font-semibold text-foreground">Nama Lengkap</TableHead>
-                    <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kelas</TableHead>
-                    <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kategori</TableHead>
-                    <TableHead className="w-[10%] text-center text-xs font-semibold text-foreground">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id} className="border-border hover:bg-muted/30">
-                      <TableCell className="p-2">
-                        <Input
-                          placeholder="Nama Siswa"
-                          value={row.name}
-                          onChange={(e) => updateRow(row.id, "name", e.target.value)}
-                          className="h-8 text-xs rounded-lg border-input bg-background"
-                        />
-                      </TableCell>
-                      <TableCell className="p-2">
-                        <Select
-                          value={row.classId}
-                          onValueChange={(val) => updateRow(row.id, "classId", val)}
-                        >
-                          <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
-                            <SelectValue placeholder="Pilih Kelas" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-lg">
-                            {AVAILABLE_CLASSES.map((cls) => (
-                              <SelectItem key={cls.id} value={cls.id} className="text-xs">
-                                {cls.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="p-2">
-                        <Select
-                          value={row.gender}
-                          onValueChange={(val) => updateRow(row.id, "gender", val as Gender)}
-                        >
-                          <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-lg">
-                            <SelectItem value="ikhwan" className="text-xs">Ikhwan</SelectItem>
-                            <SelectItem value="akhwat" className="text-xs">Akhwat</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="p-2 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg"
-                          onClick={() => removeRow(row.id)}
-                          disabled={rows.length === 1}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table className="min-w-[500px]">
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="w-[40%] text-xs font-semibold text-foreground">Nama Lengkap</TableHead>
+                      <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kelas</TableHead>
+                      <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kategori</TableHead>
+                      <TableHead className="w-[10%] text-center text-xs font-semibold text-foreground">Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="p-2">
+                          <Input
+                            placeholder="Nama Siswa"
+                            value={row.name}
+                            onChange={(e) => updateRow(row.id, "name", e.target.value)}
+                            className="h-8 text-xs rounded-lg border-input bg-background"
+                          />
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <Select
+                            value={row.classId}
+                            onValueChange={(val) => updateRow(row.id, "classId", val)}
+                          >
+                            <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
+                              <SelectValue placeholder="Pilih Kelas" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg">
+                              {AVAILABLE_CLASSES.map((cls) => (
+                                <SelectItem key={cls.id} value={cls.id} className="text-xs">
+                                  {cls.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <Select
+                            value={row.gender}
+                            onValueChange={(val) => updateRow(row.id, "gender", val as Gender)}
+                          >
+                            <SelectTrigger className="h-8 text-xs rounded-lg border-input bg-background">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg">
+                              <SelectItem value="ikhwan" className="text-xs">Ikhwan</SelectItem>
+                              <SelectItem value="akhwat" className="text-xs">Akhwat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="p-2 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 h-7 w-7 rounded-lg active:scale-[0.97] touch-manipulation"
+                            onClick={() => removeRow(row.id)}
+                            disabled={rows.length === 1}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={addRow}
-                className="w-full rounded-none border-t border-border text-primary hover:bg-accent h-10 text-xs font-medium"
+                className="w-full rounded-none border-t border-border text-primary hover:bg-accent h-10 text-xs font-medium active:scale-[0.97] touch-manipulation"
               >
                 <Plus size={14} className="mr-1.5" /> Tambah Baris Baru
               </Button>
@@ -290,31 +292,31 @@ export function BulkStudentDialog({
                 value={pasteContent}
                 onChange={(e) => setPasteContent(e.target.value)}
               />
-              <Button onClick={handlePasteProcess} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium rounded-lg">
+              <Button onClick={handlePasteProcess} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium rounded-lg active:scale-[0.97] touch-manipulation">
                 <ClipboardPaste size={15} className="mr-1.5" /> Proses Data Tempel
               </Button>
             </div>
           )}
         </div>
 
-        <div className="p-4 bg-muted/40 border-t border-border flex justify-between items-center">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 bg-muted/40 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <p className="text-xs font-medium text-muted-foreground text-center sm:text-left">
             Total: <strong className="text-foreground">{rows.length}</strong> Siswa
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col-reverse sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSaving}
-              className="h-8 px-4 rounded-lg text-xs"
+              className="h-9 sm:h-8 px-4 rounded-lg text-xs font-medium active:scale-[0.97] touch-manipulation w-full sm:w-auto"
             >
               Batal
             </Button>
             <Button 
               onClick={handleSave} 
               disabled={isSaving || rows.length === 0 || (rows.length === 1 && !rows[0].name)} 
-              className="h-8 px-5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="h-9 sm:h-8 px-5 rounded-lg text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.97] touch-manipulation w-full sm:w-auto"
             >
               {isSaving ? (
                 <>

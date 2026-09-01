@@ -31,8 +31,17 @@
   * {
     @apply border-border;
   }
+  html, body {
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
   body {
     @apply bg-background text-foreground font-sans selection:bg-emerald-100 selection:text-emerald-900 antialiased;
+  }
+  @media (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 }
 

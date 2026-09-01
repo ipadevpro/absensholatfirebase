@@ -194,11 +194,11 @@ export default function ReportsPage() {
           </Select>
         </div>
 
-        <div className="flex gap-2 w-full">
+        <div className="flex gap-2 w-full sm:col-span-2 md:col-span-1">
           <Button 
             onClick={handleFetch} 
             disabled={loading || !classId} 
-            className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm"
+            className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm active:scale-[0.97] touch-manipulation transition-transform"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -212,7 +212,7 @@ export default function ReportsPage() {
             variant="outline" 
             disabled={loading || stats.length === 0} 
             title="Ekspor ke CSV"
-            className="h-9 w-9 p-0 rounded-lg border-border hover:bg-accent shrink-0"
+            className="h-9 w-9 min-h-[36px] min-w-[36px] p-0 rounded-lg border-border hover:bg-accent shrink-0 active:scale-[0.97] touch-manipulation transition-transform"
           >
             <Download className="h-4 w-4 text-foreground" />
           </Button>

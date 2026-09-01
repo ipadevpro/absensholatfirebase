@@ -112,4 +112,30 @@ describe("AttendanceList", () => {
     expect(screen.getByTitle("Haid")).toBeDefined();
     expect(screen.getByText("Haid")).toBeDefined();
   });
+
+  it("sets correct aria-pressed, aria-label and touch-manipulation attributes on status buttons", () => {
+    render(
+      <AttendanceList
+        students={mockStudents}
+        studentStatuses={{ "student-1": "hadir" }}
+        updatingIds={new Set()}
+        onStatusChange={vi.fn()}
+        prayerKey="zuhur"
+        gender="ikhwan"
+        loading={false}
+      />
+    );
+
+    // Ahmad Fauzi's Hadir button should have aria-pressed=true
+    const ahmadHadirBtn = screen.getByRole("button", { name: "Ahmad Fauzi - Hadir" });
+    expect(ahmadHadirBtn).toBeDefined();
+    expect(ahmadHadirBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(ahmadHadirBtn.className).toContain("touch-manipulation");
+    expect(ahmadHadirBtn.className).toContain("active:scale-[0.96]");
+
+    // Ahmad Fauzi's Sakit button should have aria-pressed=false
+    const ahmadSakitBtn = screen.getByRole("button", { name: "Ahmad Fauzi - Sakit" });
+    expect(ahmadSakitBtn).toBeDefined();
+    expect(ahmadSakitBtn.getAttribute("aria-pressed")).toBe("false");
+  });
 });

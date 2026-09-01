@@ -232,7 +232,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
           isSticky ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
         )}
       >
-        <div className="bg-background/95 backdrop-blur-md border-b border-border shadow-sm px-4 py-2.5">
+        <div className="bg-background/95 backdrop-blur-md border-b border-border shadow-sm pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-2.5 px-3 sm:px-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="bg-primary/10 text-primary p-1.5 rounded-lg shrink-0">
@@ -267,7 +267,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
                 variant="outline" 
                 onClick={handleMarkAllPresent}
                 disabled={loading || stats.total === 0}
-                className="h-8 text-xs font-medium px-3 rounded-lg border-border"
+                className="h-8 text-xs font-medium px-2.5 sm:px-3 rounded-lg border-border active:scale-[0.97] touch-manipulation"
               >
                 <CheckCheck className="h-3.5 w-3.5 mr-1 text-emerald-600" />
                 Hadir Semua
@@ -276,7 +276,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
                 size="sm" 
                 onClick={handleFinalSubmit}
                 disabled={loading || isSubmitting || stats.total === 0}
-                className="h-8 text-xs font-semibold px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
+                className="h-8 text-xs font-semibold px-2.5 sm:px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm active:scale-[0.97] touch-manipulation"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
@@ -296,7 +296,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
                 }}
-                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground active:scale-[0.97] touch-manipulation"
                 title="Kembali ke atas"
               >
                 <ChevronUp className="h-4 w-4" />
@@ -347,7 +347,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
               variant="outline" 
               onClick={handleMarkAllPresent}
               disabled={loading || stats.total === 0}
-              className="rounded-lg border-border h-10 px-4 text-sm font-medium self-start sm:self-auto"
+              className="rounded-lg border-border h-10 px-4 text-sm font-medium self-start sm:self-auto active:scale-[0.98] touch-manipulation"
             >
               <CheckCheck className="h-4 w-4 mr-2 text-emerald-600" />
               Hadir Semua
@@ -421,7 +421,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
             onClick={handleFinalSubmit}
             disabled={loading || isSubmitting || stats.total === 0}
             className={cn(
-              "w-full h-12 rounded-xl text-base font-semibold transition-all duration-200",
+              "w-full h-12 rounded-xl text-base font-semibold transition-all duration-200 active:scale-[0.98] touch-manipulation",
               stats.progress === 100 
                 ? "bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm" 
                 : "bg-muted-foreground/20 text-muted-foreground cursor-not-allowed hover:bg-muted-foreground/20"

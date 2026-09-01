@@ -65,7 +65,7 @@ export function AttendanceStats({ stats, loading = false }: AttendanceStatsProps
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[560px]">
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="w-16 text-center font-semibold text-foreground text-xs">Peringkat</TableHead>

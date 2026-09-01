@@ -56,9 +56,9 @@ export function StudentList({
 
             {/* Action Buttons Skeleton */}
             <div className="flex items-center gap-1.5 mt-3 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-none border-border">
-              <Skeleton className="h-8 w-20 sm:w-24 rounded-lg" />
-              <Skeleton className="h-8 w-16 sm:w-18 rounded-lg" />
-              <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+              <Skeleton className="h-9 w-20 sm:w-24 rounded-lg" />
+              <Skeleton className="h-9 w-16 sm:w-18 rounded-lg" />
+              <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
             </div>
           </div>
         ))}
@@ -127,7 +127,7 @@ export function StudentList({
               variant="ghost" 
               size="sm" 
               onClick={() => onDelegate(student)} 
-              className="rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/60 h-8 px-2.5 text-xs font-medium"
+              className="rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border border-blue-200/60 min-h-[36px] h-9 px-3 text-xs font-medium touch-manipulation active:scale-[0.96] transition-transform"
               title="Delegasikan Koordinator"
             >
               <UserCog size={14} className="sm:mr-1.5" />
@@ -138,7 +138,7 @@ export function StudentList({
               variant="ghost" 
               size="sm" 
               onClick={() => onEdit(student)}
-              className="rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/60 h-8 px-2.5 text-xs font-medium"
+              className="rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/60 min-h-[36px] h-9 px-3 text-xs font-medium touch-manipulation active:scale-[0.96] transition-transform"
               title="Edit Data"
             >
               <Edit3 size={14} className="sm:mr-1.5" />
@@ -149,7 +149,7 @@ export function StudentList({
               variant="ghost"
               size="icon"
               onClick={() => onDelete(student.id)}
-              className="rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 transition-all h-8 w-8"
+              className="rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 min-h-[36px] min-w-[36px] h-9 w-9 touch-manipulation active:scale-[0.96] transition-transform"
               title="Hapus Siswa"
             >
               <Trash2 size={14} />

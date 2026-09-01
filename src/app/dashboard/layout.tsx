@@ -17,7 +17,7 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">{children}</main>
+          <main className="flex-1 overflow-y-auto p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-6 md:p-6">{children}</main>
           <MobileNav />
           <InstallPrompt />
         </div>

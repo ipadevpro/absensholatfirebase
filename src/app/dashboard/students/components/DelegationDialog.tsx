@@ -114,11 +114,21 @@ export function DelegationDialog({
               minLength={6}
             />
           </div>
-          <DialogFooter className="gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 sm:space-x-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              disabled={isLoading} 
+              className="w-full sm:w-auto rounded-lg border-border h-9 px-4 text-xs font-medium active:scale-[0.97] touch-manipulation"
+            >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading} className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-5 text-xs font-medium">
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full sm:w-auto rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-5 text-xs font-medium active:scale-[0.97] touch-manipulation"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

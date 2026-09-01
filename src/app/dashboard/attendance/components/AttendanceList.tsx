@@ -208,8 +208,10 @@ export function AttendanceList({
                       key={opt.value}
                       type="button"
                       onClick={() => !isUpdating && onStatusChange(student.id, opt.value)}
+                      aria-pressed={isActive}
+                      aria-label={`${student.name} - ${opt.label}`}
                       className={cn(
-                        "flex-1 sm:flex-none flex items-center justify-center min-w-[42px] h-11 rounded-lg text-xs font-bold transition-all border",
+                        "flex-1 sm:flex-none flex items-center justify-center min-w-[42px] h-11 rounded-lg text-xs font-bold border transition-transform active:scale-[0.96] touch-manipulation",
                         isActive
                           ? opt.activeClass + " font-black"
                           : "bg-muted/30 border-border text-muted-foreground hover:bg-accent hover:text-foreground"

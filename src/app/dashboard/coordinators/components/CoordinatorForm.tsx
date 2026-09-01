@@ -136,13 +136,22 @@ export default function CoordinatorForm({ onSubmit, isLoading = false, error, on
             </Select>
           </div>
         </CardContent>
-        <CardFooter className="p-5 pt-0 flex gap-2">
+        <CardFooter className="p-5 pt-0 flex flex-col-reverse sm:flex-row gap-2">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} className="rounded-lg border-border h-9 px-4 text-xs font-medium">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel} 
+              className="w-full sm:w-auto rounded-lg border-border h-9 px-4 text-xs font-medium active:scale-[0.97] touch-manipulation"
+            >
               Batal
             </Button>
           )}
-          <Button type="submit" className="flex-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full sm:flex-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-xs font-medium active:scale-[0.97] touch-manipulation" 
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

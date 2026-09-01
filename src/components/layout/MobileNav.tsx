@@ -46,7 +46,7 @@ export function MobileNav() {
   const menuItems = allMenuItems.filter(item => role && item.roles.includes(role));
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border px-2 py-1.5 flex justify-around items-center z-50 shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border px-3 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex justify-around items-center z-50 shadow-lg">
       {menuItems.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
@@ -54,8 +54,9 @@ export function MobileNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 rounded-xl transition-colors",
+              "relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 rounded-xl transition-transform active:scale-95",
               isActive
                 ? "text-emerald-800 bg-emerald-100/80 font-semibold"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -74,7 +75,7 @@ export function MobileNav() {
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <button
-            className="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-transform active:scale-95"
             title="Keluar"
             aria-label="Keluar"
           >
