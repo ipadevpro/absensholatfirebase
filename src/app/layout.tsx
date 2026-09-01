@@ -24,9 +24,65 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Absen Sholat - SMP PGII 1 Bandung",
-  description: "Sistem Monitoring Kehadiran Ibadah",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://absensholat.pgii.sch.id"
+  ),
+  title: {
+    default: "Absen Sholat - SMP PGII 1 Bandung",
+    template: "%s | Absen Sholat",
+  },
+  description: "Sistem Monitoring & Presensi Ibadah Sholat Siswa SMP PGII 1 Bandung",
+  applicationName: "Absen Sholat",
+  authors: [{ name: "Devi Saidulloh, S.Pd., Gr." }],
+  keywords: [
+    "absen sholat",
+    "smp pgii 1 bandung",
+    "presensi ibadah",
+    "sholat berjamaah",
+    "monitoring ibadah",
+    "sekolah islam",
+  ],
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: "https://absensholat.pgii.sch.id",
+    siteName: "Absen Sholat SMP PGII 1 Bandung",
+    title: "Absen Sholat - SMP PGII 1 Bandung",
+    description: "Sistem Presensi Ibadah Sholat Siswa Modern, Cepat, dan Terintegrasi",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Absen Sholat - SMP PGII 1 Bandung",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Absen Sholat - SMP PGII 1 Bandung",
+    description: "Sistem Presensi Ibadah Sholat Siswa Modern, Cepat, dan Terintegrasi",
+    images: ["/og.png"],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Absen Sholat",
+  },
 };
 
 export default function RootLayout({
