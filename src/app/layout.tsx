@@ -92,7 +92,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${amiri.variable} ${jakarta.variable}`}>
-      <body className="font-sans antialiased bg-[#fdfcf0] text-gray-900 selection:bg-emerald-100 selection:text-emerald-900">
+      <body className="font-sans antialiased bg-background text-foreground selection:bg-emerald-100 selection:text-emerald-900">
         <Script id="recovery-script" strategy="beforeInteractive">
           {`
             (function() {
