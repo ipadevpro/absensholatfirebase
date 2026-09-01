@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://absensholat.pgii.sch.id"
+    process.env.NEXT_PUBLIC_APP_URL || "https://absensholat.smppgii1.sch.id"
   ),
   title: {
     default: "Absen Sholat - SMP PGII 1 Bandung",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://absensholat.pgii.sch.id",
+    url: "https://absensholat.smppgii1.sch.id",
     siteName: "Absen Sholat SMP PGII 1 Bandung",
     title: "Absen Sholat - SMP PGII 1 Bandung",
     description: "Sistem Presensi Ibadah Sholat Siswa Modern, Cepat, dan Terintegrasi",

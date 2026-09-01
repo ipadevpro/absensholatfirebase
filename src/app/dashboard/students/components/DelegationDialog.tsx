@@ -94,7 +94,7 @@ export function DelegationDialog({
             <Input
               id="email"
               type="email"
-              placeholder="nama@pgii.sch.id"
+              placeholder="nama@smppgii1.sch.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="rounded-lg border-input bg-background h-9 text-sm"

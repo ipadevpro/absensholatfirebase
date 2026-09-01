@@ -75,7 +75,7 @@ export default function SupervisorForm({ onSubmit, isLoading = false, error, onC
             <Input
               id="email"
               type="email"
-              placeholder="pembina@pgii.sch.id"
+              placeholder="pembina@smppgii1.sch.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="rounded-lg border-input bg-background h-9 text-sm"
