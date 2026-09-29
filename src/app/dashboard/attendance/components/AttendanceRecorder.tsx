@@ -36,9 +36,10 @@ interface AttendanceRecorderProps {
   gender: "ikhwan" | "akhwat";
   date: string; // YYYY-MM-DD
   defaultPrayer?: PrayerType;
+  isHoliday?: boolean;
 }
 
-export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: AttendanceRecorderProps) {
+export function AttendanceRecorder({ classId, gender, date, defaultPrayer, isHoliday = false }: AttendanceRecorderProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
@@ -146,11 +147,19 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
   }, [date, classId, gender, selectedPrayer]);
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
+    if (isHoliday) {
+      toast.error("Tidak dapat mengubah absensi pada hari libur");
+      return;
+    }
     setLocalStatuses(prev => ({ ...prev, [studentId]: status }));
     setIsDirty(true);
   };
 
   const handleMarkAllPresent = () => {
+    if (isHoliday) {
+      toast.error("Tidak dapat mengubah absensi pada hari libur");
+      return;
+    }
     const studentsToUpdate = students.filter(s => localStatuses[s.id] !== "hadir");
     if (studentsToUpdate.length === 0) {
       toast.info("Semua siswa sudah berstatus hadir");
@@ -176,6 +185,10 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
   }, [students, localStatuses]);
 
   const handleFinalSubmit = async () => {
+    if (isHoliday) {
+      toast.error("Tidak dapat menyimpan absensi pada hari libur");
+      return;
+    }
     const missingStatus = students.filter(s => !localStatuses[s.id]);
     
     if (missingStatus.length > 0) {
@@ -266,7 +279,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
                 size="sm" 
                 variant="outline" 
                 onClick={handleMarkAllPresent}
-                disabled={loading || stats.total === 0}
+                disabled={loading || stats.total === 0 || isHoliday}
                 className="h-8 text-xs font-medium px-2.5 sm:px-3 rounded-lg border-border active:scale-[0.97] touch-manipulation"
               >
                 <CheckCheck className="h-3.5 w-3.5 mr-1 text-emerald-600" />
@@ -275,15 +288,20 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
               <Button 
                 size="sm" 
                 onClick={handleFinalSubmit}
-                disabled={loading || isSubmitting || stats.total === 0}
-                className="h-8 text-xs font-semibold px-2.5 sm:px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm active:scale-[0.97] touch-manipulation"
+                disabled={loading || isSubmitting || stats.total === 0 || isHoliday}
+                className={cn(
+                  "h-8 text-xs font-semibold px-2.5 sm:px-3 rounded-lg shadow-sm active:scale-[0.97] touch-manipulation",
+                  isHoliday 
+                    ? "bg-muted text-muted-foreground border cursor-not-allowed" 
+                    : "bg-emerald-700 hover:bg-emerald-800 text-white"
+                )}
               >
                 {isSubmitting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
                 ) : (
                   <Save className="h-3.5 w-3.5 mr-1" />
                 )}
-                Simpan
+                {isHoliday ? "Terkunci" : "Simpan"}
               </Button>
               <Button 
                 size="icon" 
@@ -346,7 +364,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
             <Button 
               variant="outline" 
               onClick={handleMarkAllPresent}
-              disabled={loading || stats.total === 0}
+              disabled={loading || stats.total === 0 || isHoliday}
               className="rounded-lg border-border h-10 px-4 text-sm font-medium self-start sm:self-auto active:scale-[0.98] touch-manipulation"
             >
               <CheckCheck className="h-4 w-4 mr-2 text-emerald-600" />
@@ -408,6 +426,7 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
                     prayerKey={prayer}
                     gender={gender}
                     loading={loading}
+                    disabled={isHoliday}
                   />
                 </TabsContent>
               ))}
@@ -419,10 +438,12 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
         <div className="p-4 sm:p-6 bg-muted/20 border-t border-border">
           <Button 
             onClick={handleFinalSubmit}
-            disabled={loading || isSubmitting || stats.total === 0}
+            disabled={loading || isSubmitting || stats.total === 0 || isHoliday}
             className={cn(
               "w-full h-12 rounded-xl text-base font-semibold transition-all duration-200 active:scale-[0.98] touch-manipulation",
-              stats.progress === 100 
+              isHoliday
+                ? "bg-muted text-muted-foreground border cursor-not-allowed"
+                : stats.progress === 100 
                 ? "bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm" 
                 : "bg-muted-foreground/20 text-muted-foreground cursor-not-allowed hover:bg-muted-foreground/20"
             )}
@@ -432,10 +453,13 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer }: Att
             ) : (
               <Save className="mr-2 h-5 w-5" />
             )}
-            Simpan Absensi Final
+            {isHoliday ? "Absensi Dikunci (Hari Libur)" : "Simpan Absensi Final"}
           </Button>
           <p className="text-center text-xs text-muted-foreground mt-2 font-normal">
-            Pastikan seluruh siswa telah terisi statusnya sebelum menekan tombol simpan.
+            {isHoliday 
+              ? "Tanggal ini ditetapkan sebagai hari libur. Pengisian absensi dinonaktifkan."
+              : "Pastikan seluruh siswa telah terisi statusnya sebelum menekan tombol simpan."
+            }
           </p>
         </div>
       </Card>

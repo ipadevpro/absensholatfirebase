@@ -53,3 +53,10 @@ export interface AttendanceStats {
   attended: number;
   percentage: number;
 }
+
+export interface Holiday {
+  id: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+}

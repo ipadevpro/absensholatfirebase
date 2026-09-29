@@ -13,6 +13,7 @@ interface AttendanceListProps {
   prayerKey: string;
   gender: Gender;
   loading?: boolean;
+  disabled?: boolean;
 }
 
 const STATUS_OPTIONS: {
@@ -94,6 +95,7 @@ export function AttendanceList({
   onStatusChange,
   gender,
   loading = false,
+  disabled = false,
 }: AttendanceListProps) {
   if (loading) {
     const numButtons = gender === "akhwat" ? 5 : 4;
@@ -207,11 +209,13 @@ export function AttendanceList({
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => !isUpdating && onStatusChange(student.id, opt.value)}
+                      disabled={disabled || isUpdating}
+                      onClick={() => !disabled && !isUpdating && onStatusChange(student.id, opt.value)}
                       aria-pressed={isActive}
                       aria-label={`${student.name} - ${opt.label}`}
                       className={cn(
-                        "flex-1 sm:flex-none flex items-center justify-center min-w-[42px] h-11 rounded-lg text-xs font-bold border transition-transform active:scale-[0.96] touch-manipulation",
+                        "flex-1 sm:flex-none flex items-center justify-center min-w-[42px] h-11 rounded-lg text-xs font-bold border transition-transform touch-manipulation",
+                        disabled ? "opacity-60 cursor-not-allowed" : "active:scale-[0.96]",
                         isActive
                           ? opt.activeClass + " font-black"
                           : "bg-muted/30 border-border text-muted-foreground hover:bg-accent hover:text-foreground"

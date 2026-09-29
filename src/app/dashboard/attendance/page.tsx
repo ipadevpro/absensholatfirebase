@@ -19,11 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, subDays, isWeekend } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { CalendarClock, AlertCircle } from "lucide-react";
-import { getAttendanceStartDate } from "@/lib/db/settings";
+import { CalendarClock, AlertCircle, CalendarOff } from "lucide-react";
+import { getAttendanceStartDate, getHolidays, isHoliday } from "@/lib/db/settings";
 import { doc, getDoc } from "firebase/firestore";
 import { useSearchParams } from "next/navigation";
 import { getPrayersForDay } from "@/lib/utils";
+import { Holiday } from "@/types";
 
 function AttendanceContent() {
   const { role, profile, loading: authLoading } = useAuth();
@@ -44,12 +45,25 @@ function AttendanceContent() {
   const [date, setDate] = useState<string>(paramDate || format(new Date(), "yyyy-MM-dd"));
   const [error, setError] = useState<string | null>(null);
   const [missingRecords, setMissingRecords] = useState<{ date: string; prayer: PrayerType }[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>(() => {
     if (role === "supervisor" && profile?.classes) return profile.classes;
     return [];
   });
 
   const isAdmin = role === "admin" || role === "supervisor";
+
+  useEffect(() => {
+    async function loadHolidays() {
+      try {
+        const data = await getHolidays();
+        setHolidays(data);
+      } catch (err) {
+        console.error("Error loading holidays:", err);
+      }
+    }
+    loadHolidays();
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -61,7 +75,11 @@ function AttendanceContent() {
       // Check last 5 school days for missing attendance in background
       async function checkMissing() {
         try {
-          const startDateStr = await getAttendanceStartDate();
+          const [startDateStr, holidaysData] = await Promise.all([
+            getAttendanceStartDate(),
+            getHolidays(),
+          ]);
+          setHolidays(holidaysData);
           const missing: { date: string; prayer: PrayerType }[] = [];
           const today = new Date();
           
@@ -71,6 +89,7 @@ function AttendanceContent() {
 
             const dateStr = format(checkDate, "yyyy-MM-dd");
             if (startDateStr && dateStr < startDateStr) continue;
+            if (isHoliday(dateStr, holidaysData)) continue;
 
             const expectedPrayers = getPrayersForDay(profile.gender, checkDate);
 
@@ -237,6 +256,24 @@ function AttendanceContent() {
         ) : null}
       </div>
 
+      {/* Holiday Notification Banner */}
+      {isHoliday(date, holidays) && (
+        <div className="rounded-xl border border-rose-200/80 bg-rose-50/80 p-4 text-rose-900 shadow-sm flex items-start gap-3 animate-in fade-in duration-200">
+          <CalendarOff className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <h3 className="font-semibold text-sm text-rose-950">
+              Hari Libur Sekolah {isHoliday(date, holidays)?.description ? `• ${isHoliday(date, holidays)?.description}` : ""}
+            </h3>
+            <p className="text-xs text-rose-800">
+              {role === "coordinator" 
+                ? "Tanggal ini ditetapkan sebagai hari libur oleh Admin. Pengisian dan perubahan data absensi dikunci."
+                : "Perhatian: Tanggal ini telah ditetapkan sebagai hari libur sekolah."
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Attendance Recorder */}
       {classId && gender ? (
         <AttendanceRecorder 
@@ -244,6 +281,7 @@ function AttendanceContent() {
           gender={gender} 
           date={date}
           defaultPrayer={paramPrayer as any}
+          isHoliday={Boolean(isHoliday(date, holidays) && role === "coordinator")}
         />
       ) : (
         <div className="flex h-48 items-center justify-center border-2 border-dashed border-border rounded-xl text-muted-foreground bg-card/40">

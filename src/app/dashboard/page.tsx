@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
+  Calendar,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +27,11 @@ import { cn, getPrayersForDay } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { doc, getDoc, collection, getDocs, query, where, limit, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import { Coordinator, PrayerType } from "@/types";
+import { Coordinator, PrayerType, Holiday } from "@/types";
 import { format, subDays, isWeekend } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
-import { getAttendanceStartDate, updateAttendanceStartDate } from "@/lib/db/settings";
+import { getAttendanceStartDate, updateAttendanceStartDate, getHolidays, updateHolidays, isHoliday } from "@/lib/db/settings";
 import { toast } from "sonner";
 
 interface MissingRecord {
@@ -69,6 +71,13 @@ export default function DashboardPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [supervisorClassCount, setSupervisorClassCount] = useState(0);
 
+  // Holiday states
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [newHolidayStart, setNewHolidayStart] = useState<string>("");
+  const [newHolidayEnd, setNewHolidayEnd] = useState<string>("");
+  const [newHolidayDesc, setNewHolidayDesc] = useState<string>("");
+  const [isSavingHoliday, setIsSavingHoliday] = useState<boolean>(false);
+
   // Coordinator stats
   const [coordStudentCount, setCoordStudentCount] = useState(0);
   const [coordMonthRate, setCoordMonthRate] = useState(0);
@@ -104,16 +113,18 @@ export default function DashboardPage() {
       setChecking(true);
       try {
         if (role === "admin") {
-          const [studentsSnap, coordsSnap, supervisorsSnap, startDateStr] = await Promise.all([
+          const [studentsSnap, coordsSnap, supervisorsSnap, startDateStr, holidaysData] = await Promise.all([
             getDocs(collection(db, "students")),
             getDocs(collection(db, "coordinators")),
             getDocs(collection(db, "supervisors")),
             getAttendanceStartDate(),
+            getHolidays(),
           ]);
           setTotalStudents(studentsSnap.size);
           setTotalCoordinators(coordsSnap.size);
           setTotalSupervisors(supervisorsSnap.size);
           setAttendanceStartDate(startDateStr || "");
+          setHolidays(holidaysData || []);
 
           try {
             const q = query(
@@ -268,7 +279,10 @@ export default function DashboardPage() {
           setCoordMonthRate(rate);
 
           // 5. Check last 5 school days for tasks
-          const startDateStr = await getAttendanceStartDate();
+          const [startDateStr, holidaysData] = await Promise.all([
+            getAttendanceStartDate(),
+            getHolidays(),
+          ]);
           const missing: MissingRecord[] = [];
           const today = new Date();
           
@@ -278,6 +292,7 @@ export default function DashboardPage() {
 
             const dateStr = format(date, "yyyy-MM-dd");
             if (startDateStr && dateStr < startDateStr) continue;
+            if (isHoliday(dateStr, holidaysData)) continue;
 
             const expectedPrayersForDay = getPrayersForDay(profile.gender, date);
 
@@ -646,6 +661,148 @@ export default function DashboardPage() {
                   "Simpan Pengaturan"
                 )}
               </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5b. HOLIDAY SETTINGS (FOR ADMINS) */}
+      {role === "admin" && (
+        <Card className="rounded-xl border border-border bg-card shadow-sm p-5 md:p-6 space-y-4">
+          <CardHeader className="p-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <CardTitle className="text-base font-semibold text-foreground">Pengaturan Tanggal Libur Sekolah</CardTitle>
+              {holidays.length > 0 && (
+                <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/80 self-start sm:self-auto">
+                  {holidays.length} Jadwal Libur
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Atur tanggal atau rentang tanggal libur. Pada tanggal ini, absensi dikunci bagi koordinator dan tidak dihitung sebagai tugas yang terlewat.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0 space-y-4">
+            {/* Input Form */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3 items-end p-3.5 rounded-lg border border-border/70 bg-muted/20">
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[11px] font-semibold text-foreground uppercase tracking-wider">Tanggal Mulai</label>
+                <input
+                  type="date"
+                  value={newHolidayStart}
+                  onChange={(e) => setNewHolidayStart(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[11px] font-semibold text-foreground uppercase tracking-wider">Tanggal Selesai (Opsional)</label>
+                <input
+                  type="date"
+                  value={newHolidayEnd}
+                  min={newHolidayStart}
+                  onChange={(e) => setNewHolidayEnd(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[11px] font-semibold text-foreground uppercase tracking-wider">Keterangan Libur</label>
+                <input
+                  type="text"
+                  value={newHolidayDesc}
+                  onChange={(e) => setNewHolidayDesc(e.target.value)}
+                  placeholder="Contoh: Libur Idul Fitri"
+                  className="w-full h-9 px-3 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+              <div className="md:col-span-1">
+                <Button
+                  onClick={async () => {
+                    if (!newHolidayStart) {
+                      toast.error("Pilih tanggal mulai libur");
+                      return;
+                    }
+                    const end = newHolidayEnd && newHolidayEnd >= newHolidayStart ? newHolidayEnd : newHolidayStart;
+                    const newEntry: Holiday = {
+                      id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                      startDate: newHolidayStart,
+                      endDate: end,
+                      description: newHolidayDesc.trim() || undefined,
+                    };
+                    const updated = [...holidays, newEntry].sort((a, b) => a.startDate.localeCompare(b.startDate));
+                    setIsSavingHoliday(true);
+                    try {
+                      await updateHolidays(updated);
+                      setHolidays(updated);
+                      setNewHolidayStart("");
+                      setNewHolidayEnd("");
+                      setNewHolidayDesc("");
+                      toast.success("Tanggal libur berhasil ditambahkan");
+                    } catch (err: any) {
+                      toast.error("Gagal menambahkan hari libur: " + err.message);
+                    } finally {
+                      setIsSavingHoliday(false);
+                    }
+                  }}
+                  disabled={isSavingHoliday || !newHolidayStart}
+                  className="w-full h-9 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg"
+                >
+                  {isSavingHoliday ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Tambah"}
+                </Button>
+              </div>
+            </div>
+
+            {/* List of holidays */}
+            {checking ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
+            ) : holidays.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4 italic border border-dashed rounded-lg bg-card/40">
+                Belum ada tanggal libur yang diatur.
+              </p>
+            ) : (
+              <div className="divide-y divide-border/60 border rounded-lg overflow-hidden bg-background">
+                {holidays.map((h) => {
+                  const isRange = h.endDate && h.endDate !== h.startDate;
+                  return (
+                    <div key={h.id} className="flex items-center justify-between p-3 text-xs hover:bg-muted/40 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+                        <div className="flex items-center gap-1.5 font-medium text-foreground shrink-0">
+                          <Calendar className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>
+                            {format(new Date(h.startDate), "d MMM yyyy", { locale: idLocale })}
+                            {isRange && ` – ${format(new Date(h.endDate), "d MMM yyyy", { locale: idLocale })}`}
+                          </span>
+                        </div>
+                        {h.description && (
+                          <span className="text-muted-foreground bg-muted px-2 py-0.5 rounded text-[11px] font-normal truncate max-w-xs">
+                            {h.description}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          const updated = holidays.filter((item) => item.id !== h.id);
+                          try {
+                            await updateHolidays(updated);
+                            setHolidays(updated);
+                            toast.success("Tanggal libur berhasil dihapus");
+                          } catch (err: any) {
+                            toast.error("Gagal menghapus hari libur: " + err.message);
+                          }
+                        }}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md"
+                        title="Hapus hari libur"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
