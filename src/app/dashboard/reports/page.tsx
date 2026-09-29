@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAttendanceStats } from "@/lib/db/reports";
+import { getAttendanceStats, getDetailedMonthlyData, getOverallAttendanceData } from "@/lib/db/reports";
 import { AttendanceStats as StatsType } from "@/types";
 import { AttendanceStats } from "./components/AttendanceStats";
+import { ReportMetrics } from "./components/ReportMetrics";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,17 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search, Download } from "lucide-react";
-import { exportToCSV } from "@/lib/export";
+import { Loader2, Search, FileSpreadsheet, Download } from "lucide-react";
+import { exportMonthlyReportToXLSX, exportComprehensiveReportToXLSX } from "@/lib/exportExcel";
 import { toast } from "sonner";
-
-function getGrade(percentage: number): string {
-  if (percentage >= 90) return "A";
-  if (percentage >= 80) return "B";
-  if (percentage >= 70) return "C";
-  if (percentage >= 60) return "D";
-  return "E";
-}
 
 export default function ReportsPage() {
   const { role, profile, loading: authLoading } = useAuth();
@@ -37,6 +30,8 @@ export default function ReportsPage() {
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [stats, setStats] = useState<StatsType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isExportingMonth, setIsExportingMonth] = useState(false);
+  const [isExportingAll, setIsExportingAll] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
@@ -60,7 +55,7 @@ export default function ReportsPage() {
     }
   }, [role, profile, authLoading]);
 
-  // Fetch stats
+  // Fetch stats for current selection
   const handleFetch = async () => {
     if (!classId) return;
     setLoading(true);
@@ -83,40 +78,138 @@ export default function ReportsPage() {
     }
   };
 
-  const handleExport = () => {
-    if (stats.length === 0) {
-      toast.error("Tidak ada data untuk diekspor");
-      return;
+  // Export current selected month to XLSX (with date-by-date columns and score without %)
+  const handleExportMonthXLSX = async () => {
+    if (!classId) return;
+    setIsExportingMonth(true);
+    try {
+      const monthNames = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      const monthName = monthNames[parseInt(month) - 1] || month;
+      
+      const detailed = await getDetailedMonthlyData(
+        classId,
+        gender,
+        parseInt(year),
+        parseInt(month)
+      );
+
+      if (detailed.data.length === 0) {
+        toast.error("Tidak ada data siswa untuk diekspor");
+        return;
+      }
+
+      exportMonthlyReportToXLSX({
+        className: detailed.className,
+        gender,
+        monthName,
+        year: parseInt(year),
+        dates: detailed.dates,
+        data: detailed.data,
+      });
+
+      toast.success("Laporan Excel (.xlsx) berhasil diunduh");
+    } catch (err: any) {
+      console.error("Export error:", err);
+      toast.error("Gagal mengekspor laporan: " + err.message);
+    } finally {
+      setIsExportingMonth(false);
     }
-    
-    const exportData = stats.map(s => ({
-      "Nama Siswa": s.studentName,
-      "Jumlah Hadir": s.attended,
-      "Total Sholat": s.totalPrayers,
-      "Nilai (%)": s.percentage,
-      "Grade": getGrade(s.percentage)
-    }));
-    
-    const className = AVAILABLE_CLASSES.find(c => c.id === classId)?.name || classId;
-    const fileName = `Laporan_Absen_Kelas_${className}_${gender}_${month}_${year}`;
-    
-    exportToCSV(exportData, fileName);
-    toast.success("Laporan berhasil diunduh");
+  };
+
+  // Download comprehensive attendance for ALL classes (Admin) or ASSIGNED classes (Pembina)
+  const handleExportAllAttendanceXLSX = async () => {
+    setIsExportingAll(true);
+    try {
+      let targetClassIds: string[] = [];
+      let targetTitle = "Seluruh Kelas";
+
+      if (role === "admin") {
+        targetClassIds = AVAILABLE_CLASSES.map((c) => c.id);
+        targetTitle = "Seluruh Kelas SMP PGII 1 Bandung";
+      } else if (role === "supervisor") {
+        targetClassIds = supervisorClasses.length > 0 ? supervisorClasses : AVAILABLE_CLASSES.map((c) => c.id);
+        targetTitle = `Kelas Binaan (${targetClassIds.map((c) => AVAILABLE_CLASSES.find((cls) => cls.id === c)?.name || c).join(", ")})`;
+      } else if (classId) {
+        targetClassIds = [classId];
+        targetTitle = `Kelas ${AVAILABLE_CLASSES.find((c) => c.id === classId)?.name || classId}`;
+      }
+
+      if (targetClassIds.length === 0) {
+        toast.error("Tidak ada kelas yang ditemukan untuk diekspor");
+        return;
+      }
+
+      const toastId = toast.loading("Mengumpulkan seluruh data absensi sholat...");
+      const comprehensive = await getOverallAttendanceData(
+        targetClassIds,
+        parseInt(year)
+      );
+      toast.dismiss(toastId);
+
+      if (comprehensive.monthlySummaries.length === 0) {
+        toast.error("Tidak ada data absensi untuk tahun ini");
+        return;
+      }
+
+      exportComprehensiveReportToXLSX({
+        title: targetTitle,
+        year: parseInt(year),
+        monthlySummaries: comprehensive.monthlySummaries,
+        dailyAttendances: comprehensive.dailyAttendances,
+        allDates: comprehensive.allDates,
+      });
+
+      toast.success("Rekapitulasi keseluruhan (.xlsx) berhasil diunduh!");
+    } catch (err: any) {
+      console.error("Error exporting overall attendance:", err);
+      toast.error("Gagal mendownload data keseluruhan: " + err.message);
+    } finally {
+      setIsExportingAll(false);
+    }
   };
 
   const filteredClassesForSelect = supervisorClasses.length > 0
     ? AVAILABLE_CLASSES.filter(c => supervisorClasses.includes(c.id))
     : AVAILABLE_CLASSES;
 
+  const canDownloadAll = role === "admin" || role === "supervisor";
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Laporan Absensi</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Rekap kehadiran dan perhitungan nilai kedisiplinan sholat siswa.
-        </p>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Laporan Absensi</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Rekap kehadiran dan perhitungan nilai kedisiplinan sholat siswa.
+          </p>
+        </div>
+
+        {canDownloadAll && (
+          <Button
+            onClick={handleExportAllAttendanceXLSX}
+            disabled={isExportingAll}
+            className="rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-9 px-4 font-semibold shadow-xs active:scale-[0.97] touch-manipulation transition-transform self-start sm:self-auto"
+          >
+            {isExportingAll ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Memproses XLSX...
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                Download Keseluruhan (XLSX)
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
+      {/* Filter Card */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 items-end bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-foreground">Kelas</Label>
@@ -208,19 +301,31 @@ export default function ReportsPage() {
             )}
             Tampilkan
           </Button>
+
           <Button 
-            onClick={handleExport} 
+            onClick={handleExportMonthXLSX} 
             variant="outline" 
-            disabled={loading || stats.length === 0} 
-            title="Ekspor ke CSV"
-            aria-label="Ekspor rekapitulasi ke file CSV"
-            className="h-9 w-9 min-h-[36px] min-w-[36px] p-0 rounded-lg border-border hover:bg-accent shrink-0 active:scale-[0.97] touch-manipulation transition-transform"
+            disabled={isExportingMonth || loading || !classId} 
+            title="Download Laporan Bulan Ini (.xlsx)"
+            aria-label="Download Laporan Bulan Ini (.xlsx)"
+            className="h-9 px-2.5 rounded-lg border-border hover:bg-accent shrink-0 active:scale-[0.97] touch-manipulation transition-transform flex items-center gap-1 text-xs"
           >
-            <Download className="h-4 w-4 text-foreground" />
+            {isExportingMonth ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <>
+                <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
+                <span className="hidden sm:inline font-medium">XLSX</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
 
+      {/* Overview Metric Cards */}
+      <ReportMetrics stats={stats} loading={loading} />
+
+      {/* Main Stats Table */}
       <AttendanceStats stats={stats} loading={loading} />
     </div>
   );

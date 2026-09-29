@@ -72,7 +72,7 @@ export function AttendanceStats({ stats, loading = false }: AttendanceStatsProps
                 <TableHead className="font-semibold text-foreground text-xs">Nama Siswa</TableHead>
                 <TableHead className="text-center font-semibold text-foreground text-xs">Hadir</TableHead>
                 <TableHead className="text-center font-semibold text-foreground text-xs">Target</TableHead>
-                <TableHead className="text-center font-semibold text-foreground text-xs">Nilai (%)</TableHead>
+                <TableHead className="text-center font-semibold text-foreground text-xs">Nilai</TableHead>
                 <TableHead className="text-center font-semibold text-foreground text-xs w-20">Grade</TableHead>
               </TableRow>
             </TableHeader>
@@ -154,7 +154,7 @@ export function AttendanceStats({ stats, loading = false }: AttendanceStatsProps
                           "tabular-nums text-xs font-bold",
                           stat.percentage >= 80 ? "text-emerald-700" : "text-foreground"
                         )}>
-                          {stat.percentage}%
+                          {stat.percentage}
                         </span>
                       </TableCell>
                       <TableCell className="text-center py-3">

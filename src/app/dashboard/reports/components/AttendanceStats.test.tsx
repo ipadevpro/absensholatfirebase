@@ -47,7 +47,7 @@ describe("AttendanceStats", () => {
     expect(screen.getByText("Nama Siswa")).toBeDefined();
     expect(screen.getByText("Hadir")).toBeDefined();
     expect(screen.getByText("Target")).toBeDefined();
-    expect(screen.getByText("Nilai (%)")).toBeDefined();
+    expect(screen.getByText("Nilai")).toBeDefined();
     expect(screen.getByText("Grade")).toBeDefined();
 
     // Skeletons should be present
@@ -77,8 +77,8 @@ describe("AttendanceStats", () => {
     // Students rendered
     expect(screen.getByText("Ahmad Fauzi")).toBeDefined();
     expect(screen.getByText("Budi Santoso")).toBeDefined();
-    expect(screen.getByText("90%")).toBeDefined();
-    expect(screen.getByText("75%")).toBeDefined();
+    expect(screen.getByText("90")).toBeDefined();
+    expect(screen.getByText("75")).toBeDefined();
     expect(screen.getByText("A")).toBeDefined();
     expect(screen.getByText("C")).toBeDefined();
   });
