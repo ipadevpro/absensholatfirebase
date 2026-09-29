@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getAllSupervisors } from "@/lib/db/supervisors";
+import { syncSupervisorEmails } from "@/app/actions/supervisor";
 import SupervisorsList from "./components/SupervisorsList";
 import { useAuth } from "@/contexts/AuthContext";
 import { Supervisor } from "@/types";
@@ -21,6 +22,13 @@ export default function SupervisorsPage() {
     try {
       const data = await getAllSupervisors();
       setSupervisors(data);
+      if (data.some(s => !s.email)) {
+        syncSupervisorEmails().then((res) => {
+          if (res.success && res.count && res.count > 0) {
+            getAllSupervisors().then(setSupervisors);
+          }
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {
