@@ -46,6 +46,7 @@ function AttendanceContent() {
   const [error, setError] = useState<string | null>(null);
   const [missingRecords, setMissingRecords] = useState<{ date: string; prayer: PrayerType }[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [loadingHolidays, setLoadingHolidays] = useState(true);
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>(() => {
     if (role === "supervisor" && profile?.classes) return profile.classes;
     return [];
@@ -60,6 +61,8 @@ function AttendanceContent() {
         setHolidays(data);
       } catch (err) {
         console.error("Error loading holidays:", err);
+      } finally {
+        setLoadingHolidays(false);
       }
     }
     loadHolidays();
@@ -282,6 +285,8 @@ function AttendanceContent() {
           date={date}
           defaultPrayer={paramPrayer as any}
           isHoliday={Boolean(isHoliday(date, holidays) && role === "coordinator")}
+          loadingHolidays={loadingHolidays}
+          userRole={role}
         />
       ) : (
         <div className="flex h-48 items-center justify-center border-2 border-dashed border-border rounded-xl text-muted-foreground bg-card/40">

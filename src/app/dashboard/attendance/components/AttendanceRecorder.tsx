@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { Student, PrayerType, AttendanceStatus } from "@/types";
 import { getStudentsByClass } from "@/lib/db/students";
 import { saveAttendanceRecord, subscribeToAttendance } from "@/lib/db/attendance";
+import { getHolidays, isHoliday as checkHoliday } from "@/lib/db/settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,13 +38,23 @@ interface AttendanceRecorderProps {
   date: string; // YYYY-MM-DD
   defaultPrayer?: PrayerType;
   isHoliday?: boolean;
+  loadingHolidays?: boolean;
+  userRole?: string | null;
 }
 
-export function AttendanceRecorder({ classId, gender, date, defaultPrayer, isHoliday = false }: AttendanceRecorderProps) {
+export function AttendanceRecorder({ 
+  classId, 
+  gender, 
+  date, 
+  defaultPrayer, 
+  isHoliday = false,
+  loadingHolidays = false,
+  userRole,
+}: AttendanceRecorderProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
-  const loading = loadingStudents || loadingAttendance;
+  const loading = loadingStudents || loadingAttendance || loadingHolidays;
 
   const [isSubmitting, setIsSaving] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
@@ -188,6 +199,14 @@ export function AttendanceRecorder({ classId, gender, date, defaultPrayer, isHol
     if (isHoliday) {
       toast.error("Tidak dapat menyimpan absensi pada hari libur");
       return;
+    }
+
+    if (userRole === "coordinator") {
+      const freshHolidays = await getHolidays();
+      if (checkHoliday(date, freshHolidays)) {
+        toast.error("Hari libur! Koordinator tidak dapat mengisi atau menyimpan absensi.");
+        return;
+      }
     }
     const missingStatus = students.filter(s => !localStatuses[s.id]);
     
