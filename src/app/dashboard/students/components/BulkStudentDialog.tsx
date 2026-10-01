@@ -34,6 +34,7 @@ import { addStudent } from "@/lib/db/students";
 
 interface BulkStudentRow {
   id: string;
+  nis?: string;
   name: string;
   classId: string;
   gender: Gender;
@@ -55,7 +56,7 @@ export function BulkStudentDialog({
   const [mode, setMode] = useState<"table" | "paste">("table");
   const [pasteContent, setPasteContent] = useState("");
   const [rows, setRows] = useState<BulkStudentRow[]>([
-    { id: Math.random().toString(), name: "", classId: defaultClassId || "", gender: "ikhwan" },
+    { id: Math.random().toString(), nis: "", name: "", classId: defaultClassId || "", gender: "ikhwan" },
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +88,30 @@ export function BulkStudentDialog({
     const lines = pasteContent.trim().split("\n");
     const newRows: BulkStudentRow[] = lines.map(line => {
       // Split by tab (Excel default) or comma
-      const parts = line.split(/\t|,/);
-      const name = parts[0]?.trim() || "";
-      const classInput = parts[1]?.trim().toLowerCase().replace("-", "") || "";
-      const genderInput = parts[2]?.trim().toLowerCase() || "";
+      const parts = line.split(/\t|,/).map(p => p.trim());
+      
+      let nis = "";
+      let name = "";
+      let classInput = "";
+      let genderInput = "";
+
+      if (parts.length >= 4) {
+        if (/^[0-9A-Za-z_-]{3,20}$/.test(parts[0]) && /\d/.test(parts[0])) {
+          nis = parts[0];
+          name = parts[1];
+          classInput = parts[2]?.toLowerCase().replace("-", "") || "";
+          genderInput = parts[3]?.toLowerCase() || "";
+        } else {
+          name = parts[0];
+          nis = parts[1];
+          classInput = parts[2]?.toLowerCase().replace("-", "") || "";
+          genderInput = parts[3]?.toLowerCase() || "";
+        }
+      } else {
+        name = parts[0] || "";
+        classInput = parts[1]?.toLowerCase().replace("-", "") || "";
+        genderInput = parts[2]?.toLowerCase() || "";
+      }
 
       // Try to match classId
       const classMatch = AVAILABLE_CLASSES.find(c => 
@@ -105,6 +126,7 @@ export function BulkStudentDialog({
 
       return {
         id: Math.random().toString(),
+        nis: nis || undefined,
         name,
         classId: classMatch?.id || defaultClassId || "",
         gender
@@ -137,6 +159,7 @@ export function BulkStudentDialog({
         await Promise.all(chunk.map(row => 
           addStudent({
             name: row.name,
+            nis: row.nis?.trim() ? row.nis.trim() : undefined,
             classId: row.classId,
             gender: row.gender,
           })
@@ -145,7 +168,7 @@ export function BulkStudentDialog({
       
       onSuccess();
       onOpenChange(false);
-      setRows([{ id: Math.random().toString(), name: "", classId: "", gender: "ikhwan" }]);
+      setRows([{ id: Math.random().toString(), nis: "", name: "", classId: "", gender: "ikhwan" }]);
     } catch (err: any) {
       console.error("Bulk add error:", err);
       const msg = "Terjadi kesalahan saat menyimpan data.";
@@ -201,15 +224,24 @@ export function BulkStudentDialog({
                 <Table className="min-w-[500px]">
                   <TableHeader className="bg-muted/50">
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="w-[40%] text-xs font-semibold text-foreground">Nama Lengkap</TableHead>
-                      <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kelas</TableHead>
-                      <TableHead className="w-[25%] text-xs font-semibold text-foreground">Kategori</TableHead>
+                      <TableHead className="w-[20%] text-xs font-semibold text-foreground">NIS</TableHead>
+                      <TableHead className="w-[35%] text-xs font-semibold text-foreground">Nama Lengkap</TableHead>
+                      <TableHead className="w-[20%] text-xs font-semibold text-foreground">Kelas</TableHead>
+                      <TableHead className="w-[15%] text-xs font-semibold text-foreground">Kategori</TableHead>
                       <TableHead className="w-[10%] text-center text-xs font-semibold text-foreground">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rows.map((row) => (
                       <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="p-2">
+                          <Input
+                            placeholder="NIS (opsional)"
+                            value={row.nis || ""}
+                            onChange={(e) => updateRow(row.id, "nis", e.target.value)}
+                            className="h-8 text-xs rounded-lg border-input bg-background font-mono"
+                          />
+                        </TableCell>
                         <TableCell className="p-2">
                           <Input
                             placeholder="Nama Siswa"

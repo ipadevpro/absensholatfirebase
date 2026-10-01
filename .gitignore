@@ -35,3 +35,7 @@ coverage
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Graphify & temp
+graphify-out/
+*.xlsx

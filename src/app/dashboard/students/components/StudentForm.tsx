@@ -18,6 +18,7 @@ interface StudentFormProps {
 
 export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: StudentFormProps) {
   const [name, setName] = useState(student?.name || "");
+  const [nis, setNis] = useState(student?.nis || "");
   const [gender, setGender] = useState<Gender>(student?.gender || "ikhwan");
   const [classId, setClassId] = useState(student?.classId || defaultClassId || "");
 
@@ -25,8 +26,9 @@ export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: Stu
     e.preventDefault();
     if (!name || !gender || !classId) return;
     
-    onSubmit({ name, gender, classId });
+    onSubmit({ name, nis: nis.trim() ? nis.trim() : undefined, gender, classId });
     setName("");
+    setNis("");
     setGender("ikhwan");
     setClassId("");
   };
@@ -49,6 +51,18 @@ export function StudentForm({ student, defaultClassId, onSubmit, onCancel }: Stu
               onChange={(e) => setName(e.target.value)}
               className="rounded-lg border-input bg-background h-9 text-sm"
               required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="nis" className="text-xs font-medium text-foreground">
+              NIS (Nomor Induk Siswa) <span className="text-muted-foreground font-normal">(Opsional)</span>
+            </Label>
+            <Input
+              id="nis"
+              placeholder="Contoh: 212207001"
+              value={nis}
+              onChange={(e) => setNis(e.target.value)}
+              className="rounded-lg border-input bg-background h-9 text-sm font-mono"
             />
           </div>
           <div className="space-y-1.5">

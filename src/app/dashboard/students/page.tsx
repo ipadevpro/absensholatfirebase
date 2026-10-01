@@ -9,6 +9,7 @@ import { StudentList } from "./components/StudentList";
 import { StudentForm } from "./components/StudentForm";
 import { DelegationDialog } from "./components/DelegationDialog";
 import { BulkStudentDialog } from "./components/BulkStudentDialog";
+import { BulkNISDialog } from "./components/BulkNISDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +39,8 @@ import {
   X,
   Trash2,
   GraduationCap,
-  ArrowLeft
+  ArrowLeft,
+  FileSpreadsheet
 } from "lucide-react";
 import { AVAILABLE_CLASSES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -53,6 +55,7 @@ export default function StudentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [showDelegation, setShowDelegation] = useState(false);
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [showBulkNIS, setShowBulkNIS] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentIdsToDelete, setStudentIdsToDelete] = useState<string[] | null>(null);
@@ -257,7 +260,15 @@ export default function StudentsPage() {
             <p className="text-sm text-muted-foreground mt-1">Kelola data siswa kelas {activeClass?.name}</p>
           </div>
           {!showForm && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowBulkNIS(true)}
+                className="rounded-lg border-border hover:bg-accent text-xs h-9 active:scale-[0.97] touch-manipulation transition-transform"
+              >
+                <FileSpreadsheet size={16} className="mr-1.5" />
+                Import NIS
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setShowBulkAdd(true)}
@@ -484,6 +495,15 @@ export default function StudentsPage() {
           loadStudents();
         }}
         defaultClassId={selectedClassId || undefined}
+      />
+
+      <BulkNISDialog
+        open={showBulkNIS}
+        onOpenChange={setShowBulkNIS}
+        students={students}
+        onSuccess={() => {
+          loadStudents();
+        }}
       />
 
       <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>

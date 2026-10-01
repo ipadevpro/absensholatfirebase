@@ -50,3 +50,18 @@ export async function deleteStudents(ids: string[]): Promise<void> {
   });
   await batch.commit();
 }
+
+export async function bulkUpdateStudentNIS(updates: Array<{ id: string; nis: string }>): Promise<number> {
+  const chunkSize = 400;
+  let updatedCount = 0;
+  for (let i = 0; i < updates.length; i += chunkSize) {
+    const chunk = updates.slice(i, i + chunkSize);
+    const batch = writeBatch(db);
+    chunk.forEach(({ id, nis }) => {
+      batch.update(doc(db, STUDENTS_COLLECTION, id), { nis });
+      updatedCount++;
+    });
+    await batch.commit();
+  }
+  return updatedCount;
+}

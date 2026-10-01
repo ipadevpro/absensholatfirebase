@@ -106,6 +106,14 @@ export function StudentList({
                 {student.name}
               </h4>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-0.5">
+                {student.nis && (
+                  <>
+                    <span className="inline-flex items-center text-[11px] font-mono font-medium text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/80">
+                      NIS: {student.nis}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-border" />
+                  </>
+                )}
                 <span className="inline-flex items-center text-xs text-muted-foreground">
                   <GraduationCap size={12} className="mr-1 text-primary" />
                   Kelas {AVAILABLE_CLASSES.find(c => c.id === student.classId)?.name || student.classId}

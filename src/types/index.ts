@@ -16,6 +16,7 @@ export interface Supervisor {
 
 export interface Student {
   id: string;
+  nis?: string;
   name: string;
   gender: Gender;
   classId: string;
