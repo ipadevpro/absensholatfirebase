@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStudentAttendanceByNis } from "@/app/actions/studentAttendance";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-api-key",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200, headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,7 +22,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: 'Parameter "nis" (atau "id") diperlukan. Contoh: /api/students/attendance?nis=12345',
         },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -30,10 +40,10 @@ export async function GET(request: NextRequest) {
     const result = await getStudentAttendanceByNis(nis, options);
 
     if (!result.success) {
-      return NextResponse.json(result, { status: result.status || 404 });
+      return NextResponse.json(result, { status: result.status || 404, headers: corsHeaders });
     }
 
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json(result, { status: 200, headers: corsHeaders });
   } catch (error: any) {
     console.error("API GET /api/students/attendance error:", error);
     return NextResponse.json(
@@ -41,7 +51,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: error.message || "Terjadi kesalahan internal server",
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
