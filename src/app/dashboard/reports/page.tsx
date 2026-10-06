@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Search, FileSpreadsheet, Download } from "lucide-react";
 import { exportMonthlyReportToXLSX, exportComprehensiveReportToXLSX } from "@/lib/exportExcel";
+import { ExportRangeDialog } from "./components/ExportRangeDialog";
 import { toast } from "sonner";
 
 export default function ReportsPage() {
@@ -32,6 +33,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [isExportingMonth, setIsExportingMonth] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [supervisorClasses, setSupervisorClasses] = useState<string[]>([]);
 
@@ -188,25 +190,13 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        {canDownloadAll && (
-          <Button
-            onClick={handleExportAllAttendanceXLSX}
-            disabled={isExportingAll}
-            className="rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-9 px-4 font-semibold shadow-xs active:scale-[0.97] touch-manipulation transition-transform self-start sm:self-auto"
-          >
-            {isExportingAll ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                Memproses XLSX...
-              </>
-            ) : (
-              <>
-                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
-                Download Keseluruhan (XLSX)
-              </>
-            )}
-          </Button>
-        )}
+        <Button
+          onClick={() => setShowExportDialog(true)}
+          className="rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-9 px-4 font-semibold shadow-xs active:scale-[0.97] touch-manipulation transition-transform self-start sm:self-auto"
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+          Download Excel (Semester / Rentang)
+        </Button>
       </div>
 
       {/* Filter Card */}
@@ -303,21 +293,14 @@ export default function ReportsPage() {
           </Button>
 
           <Button 
-            onClick={handleExportMonthXLSX} 
+            onClick={() => setShowExportDialog(true)} 
             variant="outline" 
-            disabled={isExportingMonth || loading || !classId} 
-            title="Download Laporan Bulan Ini (.xlsx)"
-            aria-label="Download Laporan Bulan Ini (.xlsx)"
+            title="Download Laporan Excel (.xlsx)"
+            aria-label="Download Laporan Excel (.xlsx)"
             className="h-9 px-2.5 rounded-lg border-border hover:bg-accent shrink-0 active:scale-[0.97] touch-manipulation transition-transform flex items-center gap-1 text-xs"
           >
-            {isExportingMonth ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <>
-                <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
-                <span className="hidden sm:inline font-medium">XLSX</span>
-              </>
-            )}
+            <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
+            <span className="hidden sm:inline font-medium">Export</span>
           </Button>
         </div>
       </div>
@@ -327,6 +310,16 @@ export default function ReportsPage() {
 
       {/* Main Stats Table */}
       <AttendanceStats stats={stats} loading={loading} />
+
+      {/* Pop-up Range & Semester Excel Export Dialog */}
+      <ExportRangeDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        userRole={role}
+        userClassId={classId}
+        userGender={gender}
+        supervisorClasses={supervisorClasses}
+      />
     </div>
   );
 }

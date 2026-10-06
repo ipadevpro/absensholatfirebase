@@ -137,10 +137,10 @@ export async function getDetailedMonthlyData(
   const attendanceSnapshot = await getDocs(attendanceQuery);
   const records = attendanceSnapshot.docs.map((doc) => doc.data());
 
-  // 3. Extract unique sorted dates
+  // 3. Extract unique sorted dates and Friday prayer sessions
   const uniqueDates = Array.from(new Set(records.map((r) => r.date as string))).sort();
-  const totalDays = uniqueDates.length;
-  const targetPrayers = totalDays * 2;
+  const jumatRecords = records.filter((r) => r.prayerType === "jumat");
+  const jumatTarget = jumatRecords.length;
 
   // 4. Map records by date
   const recordsByDate: Record<string, any[]> = {};
@@ -153,14 +153,26 @@ export async function getDetailedMonthlyData(
   const dailyData: DailyStudentAttendance[] = students.map((student) => {
     const dailyStatus: Record<string, string> = {};
     let totalAttended = 0;
+    let actualTargetPrayers = 0;
 
     uniqueDates.forEach((d) => {
       const dayRecords = recordsByDate[d] || [];
+      if (dayRecords.length === 0) {
+        dailyStatus[d] = "-";
+        return;
+      }
+
+      actualTargetPrayers += dayRecords.length;
+
       let attendedInDay = 0;
       let hasHaid = false;
       let hasSakit = false;
       let hasIzin = false;
       let hasAlpa = false;
+
+      const isFriday = new Date(d + "T00:00:00").getDay() === 5;
+      const jumatRec = isFriday ? dayRecords.find((r) => r.prayerType === "jumat") : undefined;
+      const asharRec = isFriday ? dayRecords.find((r) => r.prayerType === "ashar") : undefined;
 
       dayRecords.forEach((r) => {
         const s = r.statuses?.[student.id];
@@ -175,36 +187,72 @@ export async function getDetailedMonthlyData(
 
       totalAttended += attendedInDay;
 
-      if (dayRecords.length === 0) {
-        dailyStatus[d] = "-";
-      } else if (attendedInDay === dayRecords.length) {
-        dailyStatus[d] = hasHaid ? "Haid" : "Hadir";
-      } else if (attendedInDay > 0) {
-        dailyStatus[d] = `${attendedInDay} Sholat`;
-      } else if (hasSakit) {
-        dailyStatus[d] = "Sakit";
-      } else if (hasIzin) {
-        dailyStatus[d] = "Izin";
-      } else if (hasAlpa) {
-        dailyStatus[d] = "Alpa";
+      if (student.gender === "ikhwan" && isFriday && (jumatRec || asharRec)) {
+        const jumatStatus = jumatRec?.statuses?.[student.id];
+        const asharStatus = asharRec?.statuses?.[student.id];
+        const jHadir = jumatStatus === "hadir";
+        const aHadir = asharStatus === "hadir";
+
+        if (jHadir && aHadir) {
+          dailyStatus[d] = "Jum'at + Ashar";
+        } else if (jHadir) {
+          dailyStatus[d] = "Jum'at Saja";
+        } else if (aHadir) {
+          dailyStatus[d] = "Ashar Saja";
+        } else if (hasSakit) {
+          dailyStatus[d] = "Sakit";
+        } else if (hasIzin) {
+          dailyStatus[d] = "Izin";
+        } else if (hasAlpa) {
+          dailyStatus[d] = "Alpa";
+        } else {
+          dailyStatus[d] = "-";
+        }
       } else {
-        dailyStatus[d] = "-";
+        if (attendedInDay === dayRecords.length) {
+          dailyStatus[d] = hasHaid ? "Haid" : "Hadir";
+        } else if (attendedInDay > 0) {
+          dailyStatus[d] = `${attendedInDay} Sholat`;
+        } else if (hasSakit) {
+          dailyStatus[d] = "Sakit";
+        } else if (hasIzin) {
+          dailyStatus[d] = "Izin";
+        } else if (hasAlpa) {
+          dailyStatus[d] = "Alpa";
+        } else {
+          dailyStatus[d] = "-";
+        }
       }
     });
 
-    const score = targetPrayers > 0
-      ? Math.min(100, Math.round((totalAttended / targetPrayers) * 100))
+    // Calculate Sholat Jumat Score
+    let jumatAttended = 0;
+    let jumatScore: number | null = null;
+    if (student.gender === "ikhwan") {
+      jumatRecords.forEach((r) => {
+        const s = r.statuses?.[student.id];
+        if (s === "hadir" || s === "haid") jumatAttended += 1;
+      });
+      jumatScore = jumatTarget > 0 ? Math.min(100, Math.round((jumatAttended / jumatTarget) * 100)) : null;
+    }
+
+    const score = actualTargetPrayers > 0
+      ? Math.min(100, Math.round((totalAttended / actualTargetPrayers) * 100))
       : 0;
 
     return {
       studentId: student.id,
+      studentNis: student.nis,
       studentName: student.name,
       classId,
       className,
       gender,
       dailyStatus,
       totalAttended,
-      totalTarget: targetPrayers,
+      totalTarget: actualTargetPrayers,
+      jumatAttended,
+      jumatTarget,
+      jumatScore,
       score,
       grade: getGrade(score),
     };
@@ -228,10 +276,19 @@ export async function getDetailedMonthlyData(
   };
 }
 
-export async function getOverallAttendanceData(
-  classIds: string[],
-  year: number
-): Promise<{
+export async function getRangeAttendanceData({
+  classIds,
+  gender,
+  year,
+  startMonth,
+  endMonth,
+}: {
+  classIds: string[];
+  gender?: string;
+  year: number;
+  startMonth: number;
+  endMonth: number;
+}): Promise<{
   monthlySummaries: MonthlyStudentSummary[];
   dailyAttendances: DailyStudentAttendance[];
   allDates: string[];
@@ -240,41 +297,53 @@ export async function getOverallAttendanceData(
     return { monthlySummaries: [], dailyAttendances: [], allDates: [] };
   }
 
-  // 1. Fetch all students across classIds (chunk in groups of 30 if needed)
+  // 1. Fetch students across classIds (chunked)
   const students: Student[] = [];
   const chunkSize = 25;
   for (let i = 0; i < classIds.length; i += chunkSize) {
     const chunk = classIds.slice(i, i + chunkSize);
-    const q = query(collection(db, "students"), where("classId", "in", chunk));
+    let q = query(collection(db, "students"), where("classId", "in", chunk));
+    if (gender && gender !== "all") {
+      q = query(collection(db, "students"), where("classId", "in", chunk), where("gender", "==", gender));
+    }
     const snap = await getDocs(q);
     snap.docs.forEach((doc) => {
       students.push({ id: doc.id, ...doc.data() } as Student);
     });
   }
 
-  // 2. Fetch all attendance records for these classes within the year
-  const startYear = `${year}-01-01`;
-  const endYear = `${year}-12-31`;
-  const records: any[] = [];
+  // 2. Fetch all attendance records within the selected month range
+  const startDateStr = `${year}-${String(startMonth).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, endMonth, 0).getDate();
+  const endDateStr = `${year}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
+  const records: any[] = [];
   for (let i = 0; i < classIds.length; i += chunkSize) {
     const chunk = classIds.slice(i, i + chunkSize);
-    const q = query(
+    let q = query(
       collection(db, ATTENDANCE_COLLECTION),
       where("classId", "in", chunk),
-      where("date", ">=", startYear),
-      where("date", "<=", endYear)
+      where("date", ">=", startDateStr),
+      where("date", "<=", endDateStr)
     );
+    if (gender && gender !== "all") {
+      q = query(
+        collection(db, ATTENDANCE_COLLECTION),
+        where("classId", "in", chunk),
+        where("gender", "==", gender),
+        where("date", ">=", startDateStr),
+        where("date", "<=", endDateStr)
+      );
+    }
     const snap = await getDocs(q);
     snap.docs.forEach((doc) => records.push(doc.data()));
   }
 
-  // 3. Collect unique sorted dates across the entire year
+  // 3. Extract unique sorted dates
   const allDates = Array.from(new Set(records.map((r) => r.date as string))).sort();
 
-  // Index records by date
+  // Index records by date and month
   const recordsByDate: Record<string, any[]> = {};
-  // Index records by month (1-12)
   const recordsByMonth: Record<number, any[]> = {};
 
   records.forEach((r) => {
@@ -286,15 +355,20 @@ export async function getOverallAttendanceData(
     recordsByMonth[m].push(r);
   });
 
-  // Unique days per month
-  const uniqueDaysPerMonth: Record<number, number> = {};
-  for (let m = 1; m <= 12; m++) {
-    const monthRecs = recordsByMonth[m] || [];
-    uniqueDaysPerMonth[m] = new Set(monthRecs.map((r) => r.date)).size;
-  }
+  // Calculate actual target prayers per class & gender per month (ADIL)
+  const targetSessionsByClassGenderMonth: Record<string, number> = {};
+  const jumatSessionsByClassGender: Record<string, number> = {};
 
-  const overallTotalDays = allDates.length;
-  const overallTargetPrayers = overallTotalDays * 2;
+  records.forEach((r) => {
+    const m = parseInt(r.date.split("-")[1], 10);
+    const key = `${r.classId}_${r.gender}_${m}`;
+    targetSessionsByClassGenderMonth[key] = (targetSessionsByClassGenderMonth[key] || 0) + 1;
+
+    if (r.prayerType === "jumat") {
+      const jKey = `${r.classId}_${r.gender}`;
+      jumatSessionsByClassGender[jKey] = (jumatSessionsByClassGender[jKey] || 0) + 1;
+    }
+  });
 
   // 4. Build Monthly and Daily Summaries per Student
   const monthlySummaries: MonthlyStudentSummary[] = [];
@@ -303,19 +377,18 @@ export async function getOverallAttendanceData(
   students.forEach((student) => {
     const className = AVAILABLE_CLASSES.find((c) => c.id === student.classId)?.name || student.classId.toUpperCase();
 
-    // A. Calculate Monthly Scores
+    // A. Calculate Monthly Scores for selected month range
     const monthlyScores: Record<number, number | null> = {};
     let totalScoreSum = 0;
     let activeMonthsCount = 0;
 
-    for (let m = 1; m <= 12; m++) {
-      const monthDays = uniqueDaysPerMonth[m] || 0;
-      if (monthDays === 0) {
+    for (let m = startMonth; m <= endMonth; m++) {
+      const target = targetSessionsByClassGenderMonth[`${student.classId}_${student.gender}_${m}`] || 0;
+      if (target === 0) {
         monthlyScores[m] = null;
         continue;
       }
 
-      const target = monthDays * 2;
       const monthRecs = (recordsByMonth[m] || []).filter(
         (r) => r.classId === student.classId && r.gender === student.gender
       );
@@ -323,6 +396,7 @@ export async function getOverallAttendanceData(
       let attended = 0;
       monthRecs.forEach((r) => {
         const s = r.statuses?.[student.id];
+        // Hadir and Haid are counted as positive attendance (ADIL)
         if (s === "hadir" || s === "haid") attended += 1;
       });
 
@@ -334,20 +408,42 @@ export async function getOverallAttendanceData(
 
     const averageScore = activeMonthsCount > 0 ? Math.round(totalScoreSum / activeMonthsCount) : 0;
 
+    // B. Calculate Sholat Jumat Score (Khusus Ikhwan)
+    const jumatTarget = jumatSessionsByClassGender[`${student.classId}_${student.gender}`] || 0;
+    let jumatAttended = 0;
+    let jumatScore: number | null = null;
+
+    if (student.gender === "ikhwan") {
+      const allJumatRecs = records.filter(
+        (r) => r.classId === student.classId && r.gender === student.gender && r.prayerType === "jumat"
+      );
+      allJumatRecs.forEach((r) => {
+        const s = r.statuses?.[student.id];
+        if (s === "hadir" || s === "haid") jumatAttended += 1;
+      });
+
+      jumatScore = jumatTarget > 0 ? Math.min(100, Math.round((jumatAttended / jumatTarget) * 100)) : (jumatTarget === 0 ? null : 0);
+    }
+
     monthlySummaries.push({
       studentId: student.id,
+      studentNis: student.nis,
       studentName: student.name,
       classId: student.classId,
       className,
       gender: student.gender,
       monthlyScores,
+      jumatAttended,
+      jumatTarget,
+      jumatScore,
       averageScore,
       grade: getGrade(averageScore),
     });
 
-    // B. Calculate Daily Statuses across allDates
+    // C. Calculate Daily Statuses across allDates
     const dailyStatus: Record<string, string> = {};
     let studentAttendedTotal = 0;
+    let studentTotalTarget = 0;
 
     allDates.forEach((d) => {
       const dayRecords = (recordsByDate[d] || []).filter(
@@ -359,11 +455,17 @@ export async function getOverallAttendanceData(
         return;
       }
 
+      studentTotalTarget += dayRecords.length;
+
       let attendedInDay = 0;
       let hasHaid = false;
       let hasSakit = false;
       let hasIzin = false;
       let hasAlpa = false;
+
+      const isFriday = new Date(d + "T00:00:00").getDay() === 5;
+      const jumatRec = isFriday ? dayRecords.find((r) => r.prayerType === "jumat") : undefined;
+      const asharRec = isFriday ? dayRecords.find((r) => r.prayerType === "ashar") : undefined;
 
       dayRecords.forEach((r) => {
         const s = r.statuses?.[student.id];
@@ -378,34 +480,61 @@ export async function getOverallAttendanceData(
 
       studentAttendedTotal += attendedInDay;
 
-      if (attendedInDay === dayRecords.length) {
-        dailyStatus[d] = hasHaid ? "Haid" : "Hadir";
-      } else if (attendedInDay > 0) {
-        dailyStatus[d] = `${attendedInDay} Sholat`;
-      } else if (hasSakit) {
-        dailyStatus[d] = "Sakit";
-      } else if (hasIzin) {
-        dailyStatus[d] = "Izin";
-      } else if (hasAlpa) {
-        dailyStatus[d] = "Alpa";
+      if (student.gender === "ikhwan" && isFriday && (jumatRec || asharRec)) {
+        const jumatStatus = jumatRec?.statuses?.[student.id];
+        const asharStatus = asharRec?.statuses?.[student.id];
+        const jHadir = jumatStatus === "hadir";
+        const aHadir = asharStatus === "hadir";
+
+        if (jHadir && aHadir) {
+          dailyStatus[d] = "Jum'at + Ashar";
+        } else if (jHadir) {
+          dailyStatus[d] = "Jum'at Saja";
+        } else if (aHadir) {
+          dailyStatus[d] = "Ashar Saja";
+        } else if (hasSakit) {
+          dailyStatus[d] = "Sakit";
+        } else if (hasIzin) {
+          dailyStatus[d] = "Izin";
+        } else if (hasAlpa) {
+          dailyStatus[d] = "Alpa";
+        } else {
+          dailyStatus[d] = "-";
+        }
       } else {
-        dailyStatus[d] = "-";
+        if (attendedInDay === dayRecords.length) {
+          dailyStatus[d] = hasHaid ? "Haid" : "Hadir";
+        } else if (attendedInDay > 0) {
+          dailyStatus[d] = `${attendedInDay} Sholat`;
+        } else if (hasSakit) {
+          dailyStatus[d] = "Sakit";
+        } else if (hasIzin) {
+          dailyStatus[d] = "Izin";
+        } else if (hasAlpa) {
+          dailyStatus[d] = "Alpa";
+        } else {
+          dailyStatus[d] = "-";
+        }
       }
     });
 
-    const overallScore = overallTargetPrayers > 0
-      ? Math.min(100, Math.round((studentAttendedTotal / overallTargetPrayers) * 100))
+    const overallScore = studentTotalTarget > 0
+      ? Math.min(100, Math.round((studentAttendedTotal / studentTotalTarget) * 100))
       : 0;
 
     dailyAttendances.push({
       studentId: student.id,
+      studentNis: student.nis,
       studentName: student.name,
       classId: student.classId,
       className,
       gender: student.gender,
       dailyStatus,
       totalAttended: studentAttendedTotal,
-      totalTarget: overallTargetPrayers,
+      totalTarget: studentTotalTarget,
+      jumatAttended,
+      jumatTarget,
+      jumatScore,
       score: overallScore,
       grade: getGrade(overallScore),
     });
@@ -419,4 +548,21 @@ export async function getOverallAttendanceData(
     dailyAttendances,
     allDates,
   };
+}
+
+export async function getOverallAttendanceData(
+  classIds: string[],
+  year: number
+): Promise<{
+  monthlySummaries: MonthlyStudentSummary[];
+  dailyAttendances: DailyStudentAttendance[];
+  allDates: string[];
+}> {
+  return getRangeAttendanceData({
+    classIds,
+    gender: "all",
+    year,
+    startMonth: 1,
+    endMonth: 12,
+  });
 }
